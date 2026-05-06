@@ -1,5 +1,6 @@
-import { View, Text, FlatList, Pressable, ScrollView } from "react-native";
+import { View, Text, FlatList, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
 import { PickCard } from "../../components/community/PickCard";
@@ -34,6 +35,7 @@ export default function UserProfileScreen() {
   const currentUser = useAuthStore((s) => s.user);
   const router = useRouter();
   const isSelf = currentUser?.id === userId;
+  const [showAllPicks, setShowAllPicks] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery<Profile | null>({
     queryKey: ["profile", userId],
@@ -66,6 +68,8 @@ export default function UserProfileScreen() {
   const avatarColors = ["#6366F1","#EC4899","#F59E0B","#10B981","#3B82F6","#8B5CF6"];
   const avatarColor = avatarColors[username.charCodeAt(0) % avatarColors.length];
 
+  const displayedPicks = showAllPicks ? picks : picks.slice(0, 10);
+
   const won = picks.filter((p) => p.result === "won").length;
   const lost = picks.filter((p) => p.result === "lost").length;
   const settled = won + lost;
@@ -85,7 +89,7 @@ export default function UserProfileScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: "#0A0A0D" }}>
       <FlatList
-        data={picks}
+        data={displayedPicks}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <PickCard
@@ -180,8 +184,15 @@ export default function UserProfileScreen() {
               <StatPill label="Total Picks" value={String(picks.length)} />
             </View>
 
-            <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-              <Text style={{ color: "#F9FAFB", fontWeight: "700", fontSize: 15 }}>Recent Picks</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, marginBottom: 8 }}>
+              <Text style={{ color: "#F9FAFB", fontWeight: "700", fontSize: 15, flex: 1 }}>Recent Picks</Text>
+              {picks.length > 10 && (
+                <Pressable onPress={() => setShowAllPicks((v) => !v)}>
+                  <Text style={{ color: "#818CF8", fontSize: 13 }}>
+                    {showAllPicks ? "Show less" : `View all ${picks.length}`}
+                  </Text>
+                </Pressable>
+              )}
             </View>
           </View>
         }

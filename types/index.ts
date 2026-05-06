@@ -57,6 +57,13 @@ export type Profile = {
   token_balance: number;
   follower_count: number;
   following_count: number;
+  // Notification preferences
+  notif_engie_picks: boolean;
+  notif_community: boolean;
+  notif_bet_settlement: boolean;
+  notif_leaderboard: boolean;
+  notif_follows: boolean;
+  notif_daily_digest: boolean;
 };
 
 // ─── Virtual Tokens ───────────────────────────────────────────────────────────
