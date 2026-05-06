@@ -59,7 +59,9 @@
       "PowerShell($env:PATH = \"C:\\\\Program Files\\\\nodejs;\" + $env:PATH; cd \"C:\\\\Users\\\\amin\\\\Projects\\\\sports-betting-app\"; npx supabase functions deploy chat-agent 2>&1)",
       "PowerShell(head *)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\amin\\\\Projects\\\\sports-betting-app\" -Depth 1 -Name | Where-Object {-not $_.StartsWith\\('.'\\)} | Sort-Object)",
-      "PowerShell(Set-Location C:\\\\Users\\\\amin\\\\Projects\\\\sports-betting-app; $env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npx tsc --noEmit 2>&1 | Select-Object -First 80)"
+      "PowerShell(Set-Location C:\\\\Users\\\\amin\\\\Projects\\\\sports-betting-app; $env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npx tsc --noEmit 2>&1 | Select-Object -First 80)",
+      "PowerShell(eas build *)",
+      "PowerShell(git *)"
     ]
   }
 }

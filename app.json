@@ -14,15 +14,21 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nogameapp.betedge",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.nogameapp.betedge",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -42,6 +48,13 @@
     "notification": {
       "icon": "./assets/icon.png",
       "color": "#22c55e"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "488dfa1b-c7a5-4e83-aa64-1f7d07483d6b"
+      }
+    },
+    "owner": "nogameapp"
   }
 }
