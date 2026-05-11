@@ -1,0 +1,360 @@
+/* ── Sidebar styles ──────────────────────────────────────────────────────────
+   Left sidebar: sport tree, favorites, pinned leagues.
+   Right sidebar: live now, best odds, trending, RG banner.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LEFT SIDEBAR
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.lsb {
+  padding: 12px 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Section block */
+.lsb__section {
+  padding: 0 0 4px;
+  border-bottom: 1px solid var(--border-sub);
+  margin-bottom: 4px;
+}
+.lsb__section:last-child {
+  border-bottom: none;
+}
+
+/* Section label */
+.lsb__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 4px;
+  font-size: .65rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Nav item — used for favorites header, pinned leagues, sport links */
+.lsb__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--text-sec);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+  border-radius: 0;
+  transition: background .12s, color .12s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.lsb__item:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.lsb__item--active {
+  background: var(--green-glow);
+  color: var(--green);
+  font-weight: 600;
+}
+
+.lsb__item-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.lsb__item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lsb__item-badge {
+  flex-shrink: 0;
+  font-size: .65rem;
+  font-weight: 800;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border-sub);
+  border-radius: 100px;
+  padding: 1px 6px;
+  line-height: 1.4;
+}
+.lsb__item-badge--live {
+  background: rgba(239, 68, 68, .15);
+  color: var(--red);
+  border-color: rgba(239, 68, 68, .3);
+}
+.lsb__item-badge--green {
+  background: var(--green-glow);
+  color: var(--green);
+  border-color: rgba(34,197,94,.3);
+}
+
+/* Pin button next to league items */
+.lsb__pin-btn {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity .12s, color .12s;
+}
+.lsb__item:hover .lsb__pin-btn { opacity: 1; }
+.lsb__pin-btn--pinned {
+  opacity: 1;
+  color: var(--amber);
+}
+
+/* Favorites empty hint */
+.lsb__fav-empty {
+  padding: 6px 14px 10px;
+  font-size: .78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Icon-only mode (900px collapse) ──────────────────────────────────────── */
+@media (max-width: 900px) {
+  .lsb__label { display: none; }
+  .lsb__item { padding: 10px; justify-content: center; }
+  .lsb__item-name { display: none; }
+  .lsb__item-badge { display: none; }
+  .lsb__pin-btn { display: none; }
+  .lsb__fav-empty { display: none; }
+  .lsb__section { border-bottom: none; margin-bottom: 0; }
+
+  .sidebar-left--open .lsb__label { display: flex; }
+  .sidebar-left--open .lsb__item { padding: 7px 14px; justify-content: flex-start; }
+  .sidebar-left--open .lsb__item-name { display: block; }
+  .sidebar-left--open .lsb__item-badge { display: inline-block; }
+  .sidebar-left--open .lsb__pin-btn { display: flex; }
+  .sidebar-left--open .lsb__fav-empty { display: block; }
+  .sidebar-left--open .lsb__section { border-bottom: 1px solid var(--border-sub); }
+}
+
+@media (max-width: 640px) {
+  /* Full mobile: sidebar is overlay, always show full labels when open */
+  .sidebar-left .lsb__label { display: flex; }
+  .sidebar-left .lsb__item { padding: 7px 14px; justify-content: flex-start; }
+  .sidebar-left .lsb__item-name { display: block; }
+  .sidebar-left .lsb__item-badge { display: inline-block; }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   RIGHT SIDEBAR
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.rsb {
+  padding: 16px 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Section */
+.rsb__section {
+  padding: 0 14px 16px;
+  border-bottom: 1px solid var(--border-sub);
+  margin-bottom: 16px;
+}
+.rsb__section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.rsb__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.rsb__header-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse 2s infinite;
+  flex-shrink: 0;
+}
+
+/* Live now mini-card */
+.rsb__live-game {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border-sub);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: background .12s, border-color .12s;
+}
+.rsb__live-game:hover {
+  background: var(--card);
+  border-color: var(--border);
+}
+.rsb__live-game:last-child { margin-bottom: 0; }
+
+.rsb__live-matchup {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.rsb__live-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .72rem;
+  color: var(--text-muted);
+}
+.rsb__live-clock {
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* Best value odds row */
+.rsb__odds-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-sub);
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: background .12s;
+}
+.rsb__odds-row:hover { background: var(--card); }
+.rsb__odds-row:last-child { margin-bottom: 0; }
+
+.rsb__odds-team {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rsb__odds-val {
+  font-size: .88rem;
+  font-weight: 800;
+  color: var(--green-light);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.rsb__odds-book {
+  font-size: .68rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Trending item */
+.rsb__trending-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-sub);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: color .12s;
+}
+.rsb__trending-item:hover { color: var(--green); }
+.rsb__trending-item:last-child { border-bottom: none; }
+
+.rsb__trending-num {
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  width: 14px;
+  flex-shrink: 0;
+}
+.rsb__trending-name {
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text-sec);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rsb__trending-sport {
+  font-size: .68rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* RG Banner */
+.rsb__rg-banner {
+  background: rgba(239, 68, 68, .06);
+  border: 1px solid rgba(239, 68, 68, .2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: .75rem;
+  color: var(--text-sec);
+  line-height: 1.5;
+}
+.rsb__rg-banner strong {
+  color: var(--text);
+  display: block;
+  margin-bottom: 3px;
+  font-size: .78rem;
+}
+.rsb__rg-banner a {
+  color: var(--green);
+  text-decoration: underline;
+}
+
+/* "See all" link */
+.rsb__see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-top: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: none;
+  transition: color .12s;
+}
+.rsb__see-all:hover { color: var(--green); }

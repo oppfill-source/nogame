@@ -1,0 +1,184 @@
+/* ── Three-column page layout ────────────────────────────────────────────────
+   Extends scores.css. Adds the Flashscore-style left + main + right columns.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── Page body: three columns ─────────────────────────────────────────────── */
+.page-body {
+  display: grid;
+  grid-template-columns: 220px 1fr 280px;
+  grid-template-areas: "left main right";
+  max-width: 1520px;
+  margin: 0 auto;
+  align-items: start;
+  min-height: calc(100vh - 116px);
+}
+
+/* ── Left sidebar ─────────────────────────────────────────────────────────── */
+.sidebar-left {
+  grid-area: left;
+  position: sticky;
+  top: 108px;
+  height: calc(100vh - 108px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  border-right: 1px solid var(--border-sub);
+  background: var(--bg);
+  z-index: 10;
+}
+.sidebar-left::-webkit-scrollbar { display: none; }
+
+/* ── Main content ─────────────────────────────────────────────────────────── */
+.page-main {
+  grid-area: main;
+  min-width: 0;
+  padding: 0;
+}
+
+/* ── Right sidebar ────────────────────────────────────────────────────────── */
+.sidebar-right {
+  grid-area: right;
+  position: sticky;
+  top: 108px;
+  height: calc(100vh - 108px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  border-left: 1px solid var(--border-sub);
+  background: var(--bg);
+}
+.sidebar-right::-webkit-scrollbar { display: none; }
+
+/* ── Mobile sidebar overlay ───────────────────────────────────────────────── */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .6);
+  z-index: 30;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.sidebar-overlay[hidden] { display: none; }
+
+/* ── New appbar layout ────────────────────────────────────────────────────── */
+.appbar__inner {
+  max-width: 1520px;
+}
+
+/* ── Appbar extras ────────────────────────────────────────────────────────── */
+.appbar__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.appbar__icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border: 1px solid var(--border-sub);
+  border-radius: 8px;
+  color: var(--text-sec);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: .78rem;
+  font-weight: 600;
+  transition: background .15s, color .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.appbar__icon-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Odds format pill */
+.odds-format-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border-sub);
+  border-radius: 8px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.odds-format-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  letter-spacing: .02em;
+}
+.odds-format-btn:hover { color: var(--text); }
+.odds-format-btn--active {
+  background: var(--card);
+  color: var(--text);
+}
+
+/* ── Sports nav: extend to full max-width ─────────────────────────────────── */
+.sports-nav .container,
+.sports-nav > div {
+  max-width: 1520px;
+}
+
+/* ── Responsive: hide right sidebar at 1200px ─────────────────────────────── */
+@media (max-width: 1200px) {
+  .page-body {
+    grid-template-columns: 220px 1fr;
+    grid-template-areas: "left main";
+  }
+  .sidebar-right { display: none; }
+}
+
+/* ── Responsive: icon-only left sidebar at 900px ──────────────────────────── */
+@media (max-width: 900px) {
+  .page-body {
+    grid-template-columns: 52px 1fr;
+  }
+  .sidebar-left {
+    width: 52px;
+    overflow: visible;
+  }
+  .sidebar-left--open {
+    position: fixed;
+    top: 108px;
+    left: 0;
+    width: 220px;
+    height: calc(100vh - 108px);
+    z-index: 35;
+    box-shadow: 4px 0 24px rgba(0,0,0,.4);
+  }
+}
+
+/* ── Responsive: full mobile (hide left sidebar) ──────────────────────────── */
+@media (max-width: 640px) {
+  .page-body {
+    grid-template-columns: 1fr;
+    grid-template-areas: "main";
+  }
+  .sidebar-left {
+    position: fixed;
+    top: 108px;
+    left: -220px;
+    width: 220px;
+    height: calc(100vh - 108px);
+    z-index: 35;
+    transition: left .25s ease;
+    box-shadow: none;
+  }
+  .sidebar-left--open {
+    left: 0;
+    box-shadow: 4px 0 24px rgba(0,0,0,.4);
+  }
+}
