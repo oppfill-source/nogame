@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start *)",
+      "Bash(npx --version)",
+      "Bash(python -m http.server 8000)"
+    ]
+  }
+}
