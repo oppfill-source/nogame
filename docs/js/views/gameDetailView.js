@@ -1,34 +1,38 @@
 // ── Game detail view ─────────────────────────────────────────────────────────
 // Renders the full game detail page for #game/{id}.
-// Tabs: Summary | Odds | Stats | Lineups | H2H | Standings | News | Injuries
+// Tabs: Summary | Odds | Stats | H2H | Standings | Lineups | News | Injuries
+// Odds / Stats / H2H / Standings load asynchronously; other tabs are instant.
 
 import { getGameById, getOddsForGame, getLeague } from '../mockData.js';
-import { SPORTSBOOKS } from '../sportsbooks.js';
+import { getSportsbook } from '../sportsbooks.js';
 import {
   getBestOddsByMarket, isBestOdds, formatOdds, formatLine
 } from '../bestOdds.js';
 import { formatOddsInFormat, formatImpliedProb } from '../oddsFormat.js';
 import { state, setState } from '../state.js';
-import { navigate } from '../router.js';
+import {
+  fetchRealOdds, fetchPlayerProps, fetchGameStats,
+  fetchH2H, fetchStandings, PROP_LABEL,
+} from '../detailApi.js';
 
 const TABS = [
-  { id: 'summary',   label: 'Summary'  },
-  { id: 'odds',      label: 'Odds'     },
-  { id: 'stats',     label: 'Stats'    },
-  { id: 'lineups',   label: 'Lineups'  },
-  { id: 'h2h',       label: 'H2H'      },
-  { id: 'standings', label: 'Standings'},
-  { id: 'news',      label: 'News'     },
-  { id: 'injuries',  label: 'Injuries' },
+  { id: 'summary',   label: 'Summary'   },
+  { id: 'odds',      label: 'Odds'      },
+  { id: 'stats',     label: 'Stats'     },
+  { id: 'h2h',       label: 'H2H'       },
+  { id: 'standings', label: 'Standings' },
+  { id: 'lineups',   label: 'Lineups'   },
+  { id: 'news',      label: 'News'      },
+  { id: 'injuries',  label: 'Injuries'  },
 ];
 
 const MARKETS = [
   { id: 'moneyline', label: 'Moneyline' },
   { id: 'spread',    label: 'Spread'    },
   { id: 'total',     label: 'Total'     },
+  { id: 'props',     label: 'Props'     },
 ];
 
-// ── Team sport emoji map ──────────────────────────────────────────────────────
 const SPORT_EMOJI = {
   nfl: '🏈', ncaaf: '🏈',
   nba: '🏀', ncaab: '🏀',
@@ -59,27 +63,24 @@ function statusBadgeHTML(game) {
 }
 
 function scoreClass(game, side) {
-  const mine = side === 'home' ? game.homeScore : game.awayScore;
+  const mine   = side === 'home' ? game.homeScore : game.awayScore;
   const theirs = side === 'home' ? game.awayScore : game.homeScore;
-  const isOver = game.status === 'final' || game.status === 'live' || game.status === 'halftime';
-  if (!isOver || mine == null || theirs == null) return '';
+  const active = game.status === 'final' || game.status === 'live' || game.status === 'halftime';
+  if (!active || mine == null || theirs == null) return '';
   return mine > theirs ? ' detail-score--lead' : ' detail-score--trail';
 }
 
 // ── Game header ───────────────────────────────────────────────────────────────
 
 function renderGameHeader(game) {
-  const league = getLeague(game.leagueId);
-  const emoji = SPORT_EMOJI[game.sportId] ?? '🏆';
+  const league  = getLeague(game.leagueId);
+  const emoji   = SPORT_EMOJI[game.sportId] ?? '🏆';
   const dateStr = new Date(game.startTime).toLocaleDateString([], {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
   const timeStr = new Date(game.startTime).toLocaleTimeString([], {
     hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
   });
-
-  const awayScore = game.awayScore ?? '—';
-  const homeScore = game.homeScore ?? '—';
 
   return `
     <div class="detail-header">
@@ -93,19 +94,17 @@ function renderGameHeader(game) {
       </div>
 
       <div class="detail-scoreboard">
-        <!-- Away team -->
         <div class="detail-team detail-team--away">
           <div class="detail-team__logo">${emoji}</div>
           <div class="detail-team__city">${game.awayTeam.city}</div>
           <div class="detail-team__name">${game.awayTeam.name}</div>
         </div>
 
-        <!-- Score block -->
         <div class="detail-score-block">
           <div class="detail-score-numbers">
-            <span class="${scoreClass(game, 'away')}">${awayScore}</span>
+            <span class="${scoreClass(game, 'away')}">${game.awayScore ?? '—'}</span>
             <span class="detail-score-sep">–</span>
-            <span class="${scoreClass(game, 'home')}">${homeScore}</span>
+            <span class="${scoreClass(game, 'home')}">${game.homeScore ?? '—'}</span>
           </div>
           <div class="detail-status">
             ${statusBadgeHTML(game)}
@@ -113,7 +112,6 @@ function renderGameHeader(game) {
           </div>
         </div>
 
-        <!-- Home team -->
         <div class="detail-team detail-team--home">
           <div class="detail-team__logo">${emoji}</div>
           <div class="detail-team__city">${game.homeTeam.city}</div>
@@ -123,7 +121,6 @@ function renderGameHeader(game) {
 
       <div class="detail-header__venue">📍 ${game.venue}</div>
 
-      <!-- Tabs -->
       <div class="detail-tabs" role="tablist" id="detailTabsBar">
         ${TABS.map(t => `
           <button class="detail-tab${state.detailTab === t.id ? ' detail-tab--active' : ''}"
@@ -136,48 +133,97 @@ function renderGameHeader(game) {
     </div>`;
 }
 
+// ── Loading skeleton ──────────────────────────────────────────────────────────
+
+function renderLoadingSkeleton(label = '') {
+  return `
+    <div class="detail-skeleton">
+      ${label ? `<div class="detail-skeleton__label">${label}</div>` : ''}
+      <div class="detail-skeleton__line" style="width:60%"></div>
+      <div class="detail-skeleton__line" style="width:100%"></div>
+      <div class="detail-skeleton__line" style="width:100%"></div>
+      <div class="detail-skeleton__line" style="width:85%"></div>
+      <div class="detail-skeleton__line" style="width:100%"></div>
+      <div class="detail-skeleton__line" style="width:100%"></div>
+      <div class="detail-skeleton__line" style="width:70%"></div>
+    </div>`;
+}
+
+function renderErrorState(message) {
+  return `
+    <div class="detail-tab-placeholder">
+      <div class="detail-tab-placeholder__icon">⚠️</div>
+      <div class="detail-tab-placeholder__title">Couldn't load data</div>
+      <div class="detail-tab-placeholder__sub">${message ?? 'Check your connection and try again.'}</div>
+    </div>`;
+}
+
 // ── Odds tab ──────────────────────────────────────────────────────────────────
 
-function renderOddsTab(game) {
-  const odds = getOddsForGame(game.id);
+function renderMarketSelector(activeMarket) {
+  return `
+    <div class="detail-market-selector">
+      ${MARKETS.map(m => `
+        <button class="detail-market-btn${activeMarket === m.id ? ' detail-market-btn--active' : ''}"
+                data-market="${m.id}" type="button">
+          ${m.label}
+        </button>
+      `).join('')}
+    </div>`;
+}
+
+/**
+ * Render the main odds table (moneyline / spread / total).
+ * odds: OddsMarket[] — may come from real API or mock data
+ */
+function renderOddsTabHTML(game, odds, isMock = false) {
   if (!odds.length) {
     return `
-      <div class="detail-tab-placeholder">
-        <div class="detail-tab-placeholder__icon">📊</div>
-        <div class="detail-tab-placeholder__title">No odds available</div>
-        <div class="detail-tab-placeholder__sub">Check back closer to game time</div>
+      <div class="detail-odds">
+        ${renderMarketSelector(state.detailMarket)}
+        <div class="detail-tab-placeholder" style="padding:32px 0">
+          <div class="detail-tab-placeholder__icon">📊</div>
+          <div class="detail-tab-placeholder__title">No odds available</div>
+          <div class="detail-tab-placeholder__sub">Check back closer to game time.</div>
+        </div>
       </div>`;
   }
 
   const market = state.detailMarket;
+  if (market === 'props') return ''; // handled separately by _loadTab
+
   const { bestByGroup } = getBestOddsByMarket(odds, market);
-
-  // Columns
-  const cols = market === 'total'
-    ? [{ sel: 'over', label: 'Over' }, { sel: 'under', label: 'Under' }]
-    : [{ sel: 'away', label: game.awayTeam.name }, { sel: 'home', label: game.homeTeam.name }];
-
-  // Book rows — only books with data for this market
-  const rows = SPORTSBOOKS.map(book => {
-    const bookOdds = odds.filter(o => o.sportsbookId === book.id && o.marketType === market);
-    return { book, odds: bookOdds };
-  }).filter(r => r.odds.length > 0);
-
   const fmt = state.oddsFormat;
+
+  const cols = market === 'total'
+    ? [{ sel: 'over',  label: 'Over'  }, { sel: 'under', label: 'Under' }]
+    : [{ sel: 'away',  label: game.awayTeam.name }, { sel: 'home', label: game.homeTeam.name }];
+
+  // Build rows from whatever books appear in the data (real or mock)
+  const marketOdds = odds.filter(o => o.marketType === market);
+  const bookIds    = [...new Set(marketOdds.map(o => o.sportsbookId))];
+  const rows       = bookIds.map(id => ({
+    book: getSportsbook(id) || { id, name: id, short: id.toUpperCase(), color: '#6b7280' },
+    odds: marketOdds.filter(o => o.sportsbookId === id),
+  }));
+
+  if (!rows.length) {
+    return `
+      <div class="detail-odds">
+        ${renderMarketSelector(market)}
+        <div class="detail-tab-placeholder" style="padding:32px 0">
+          <div class="detail-tab-placeholder__icon">📊</div>
+          <div class="detail-tab-placeholder__title">No ${market} odds available</div>
+          <div class="detail-tab-placeholder__sub">Try Moneyline or check back later.</div>
+        </div>
+      </div>`;
+  }
 
   return `
     <div class="detail-odds">
-      <!-- Market selector -->
-      <div class="detail-market-selector">
-        ${MARKETS.map(m => `
-          <button class="detail-market-btn${state.detailMarket === m.id ? ' detail-market-btn--active' : ''}"
-                  data-market="${m.id}" type="button">
-            ${m.label}
-          </button>
-        `).join('')}
-      </div>
+      ${renderMarketSelector(market)}
+      ${isMock ? `<div class="detail-odds-banner">Showing sample odds — live odds will appear as markets open.</div>` : ''}
 
-      <!-- Odds table -->
       <table class="detail-odds-table">
         <thead>
           <tr>
@@ -186,7 +232,7 @@ function renderOddsTab(game) {
           </tr>
         </thead>
         <tbody>
-          ${rows.map(({ book, odds: bookOdds }) => `
+          ${rows.map(({ book, odds: bOdds }) => `
             <tr>
               <td>
                 <div class="dot__book">
@@ -195,9 +241,9 @@ function renderOddsTab(game) {
                 </div>
               </td>
               ${cols.map(c => {
-                const o = bookOdds.find(x => x.selection === c.sel);
+                const o = bOdds.find(x => x.selection === c.sel);
                 if (!o) return `<td class="dot__cell dot__cell--empty">—</td>`;
-                const best = isBestOdds(o, bestByGroup);
+                const best      = isBestOdds(o, bestByGroup);
                 const lineLabel = market === 'spread' ? formatLine(o.line, true)
                                 : market === 'total'  ? formatLine(o.line, false)
                                 : '';
@@ -225,12 +271,353 @@ function renderOddsTab(game) {
 
 function fmtRelative(iso) {
   if (!iso) return 'just now';
-  const diff = Date.now() - new Date(iso).getTime();
-  const sec = Math.floor(diff / 1000);
+  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (sec < 60) return `${sec}s ago`;
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  return `${Math.floor(min / 60)}h ago`;
+  return min < 60 ? `${min}m ago` : `${Math.floor(min / 60)}h ago`;
+}
+
+// ── Player Props tab ──────────────────────────────────────────────────────────
+
+function renderPlayerPropsHTML(game, propGroups) {
+  if (!propGroups.length) {
+    return `
+      <div class="detail-odds">
+        ${renderMarketSelector('props')}
+        <div class="detail-tab-placeholder" style="padding:32px 0">
+          <div class="detail-tab-placeholder__icon">🎯</div>
+          <div class="detail-tab-placeholder__title">No player props available</div>
+          <div class="detail-tab-placeholder__sub">Props are typically released closer to game time.</div>
+        </div>
+      </div>`;
+  }
+
+  const fmt = state.oddsFormat;
+
+  const sectionsHTML = propGroups.map(group => `
+    <div class="detail-props-group">
+      <div class="detail-props-group__header">${group.label}</div>
+      <table class="detail-props-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Line</th>
+            <th>Over</th>
+            <th>Under</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${group.players.slice(0, 12).map(p => {
+            const bestOver  = p.over.reduce((best, x) => (!best || x.odds > best.odds) ? x : best, null);
+            const bestUnder = p.under.reduce((best, x) => (!best || x.odds > best.odds) ? x : best, null);
+            const line      = bestOver?.line ?? bestUnder?.line ?? '—';
+            return `
+              <tr>
+                <td class="detail-props-player">${p.name}</td>
+                <td class="detail-props-line">${line}</td>
+                <td class="detail-props-cell detail-props-cell--over">
+                  ${bestOver
+                    ? `<span class="detail-props-odds">${formatOddsInFormat(bestOver.odds, fmt)}</span>
+                       <span class="detail-props-book">${bestOver.book}</span>`
+                    : '—'}
+                </td>
+                <td class="detail-props-cell detail-props-cell--under">
+                  ${bestUnder
+                    ? `<span class="detail-props-odds">${formatOddsInFormat(bestUnder.odds, fmt)}</span>
+                       <span class="detail-props-book">${bestUnder.book}</span>`
+                    : '—'}
+                </td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `).join('');
+
+  return `
+    <div class="detail-odds">
+      ${renderMarketSelector('props')}
+      <div class="detail-props-note">Best available odds shown per book · Must be 21+</div>
+      ${sectionsHTML}
+    </div>`;
+}
+
+// ── Stats tab ─────────────────────────────────────────────────────────────────
+
+function renderStatsTabHTML(game, data) {
+  const isActive = game.status === 'live' || game.status === 'halftime' || game.status === 'final';
+
+  if (!isActive) {
+    return `
+      <div class="detail-tab-placeholder">
+        <div class="detail-tab-placeholder__icon">📈</div>
+        <div class="detail-tab-placeholder__title">Box score available at game time</div>
+        <div class="detail-tab-placeholder__sub">Check back once the game starts.</div>
+      </div>`;
+  }
+
+  if (!data?.boxscore) {
+    return renderErrorState('Box score data not yet available.');
+  }
+
+  const { players = [], teams = [] } = data.boxscore;
+
+  // Team totals summary bar
+  const teamStats = teams.map(ts => {
+    const stat = name => ts.statistics?.find(s => s.name === name)?.displayValue ?? '—';
+    return {
+      name:  ts.team?.abbreviation ?? ts.team?.displayName ?? '?',
+      fg:    `${stat('fieldGoalsMade')}-${stat('fieldGoalsAttempted')}`,
+      threePt: `${stat('threePointFieldGoalsMade')}-${stat('threePointFieldGoalsAttempted')}`,
+      ft:    `${stat('freeThrowsMade')}-${stat('freeThrowsAttempted')}`,
+      reb:   stat('rebounds') || stat('totalRebounds'),
+      ast:   stat('assists'),
+      to:    stat('turnovers'),
+      pf:    stat('fouls') || stat('personalFouls'),
+    };
+  });
+
+  const teamSummaryHTML = teamStats.length
+    ? `
+      <div class="detail-stats-summary">
+        ${teamStats.map(t => `
+          <div class="detail-stats-team-totals">
+            <div class="detail-stats-team-totals__name">${t.name}</div>
+            <div class="detail-stats-team-totals__grid">
+              ${t.fg   !== '—-—' ? `<span class="detail-stats-kv"><span>FG</span><strong>${t.fg}</strong></span>` : ''}
+              ${t.threePt !== '—-—' ? `<span class="detail-stats-kv"><span>3PT</span><strong>${t.threePt}</strong></span>` : ''}
+              ${t.ft   !== '—-—' ? `<span class="detail-stats-kv"><span>FT</span><strong>${t.ft}</strong></span>` : ''}
+              ${t.reb  !== '—'   ? `<span class="detail-stats-kv"><span>REB</span><strong>${t.reb}</strong></span>` : ''}
+              ${t.ast  !== '—'   ? `<span class="detail-stats-kv"><span>AST</span><strong>${t.ast}</strong></span>` : ''}
+              ${t.to   !== '—'   ? `<span class="detail-stats-kv"><span>TO</span><strong>${t.to}</strong></span>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>`
+    : '';
+
+  // Player box score tables per team
+  const playerTablesHTML = players.map(teamBlock => {
+    const teamName = teamBlock.team?.displayName ?? teamBlock.team?.abbreviation ?? '?';
+    const statsBlock = teamBlock.statistics?.[0]; // primary stat group
+    if (!statsBlock?.athletes?.length) return '';
+
+    const names   = statsBlock.names ?? [];
+    // Prefer a curated subset; fall back to first 9 columns
+    const PREFERRED = ['MIN','FG','3PT','FT','REB','AST','STL','BLK','TO','PTS'];
+    const colIdxs   = PREFERRED
+      .map(n => names.indexOf(n))
+      .filter(i => i !== -1)
+      .slice(0, 10);
+    const colNames  = colIdxs.map(i => names[i]);
+
+    const athletes = statsBlock.athletes.filter(a => a.stats?.length);
+    if (!athletes.length) return '';
+
+    return `
+      <div class="detail-stats-team">
+        <div class="detail-stats-team__header">${teamName}</div>
+        <div class="detail-stats-scroll">
+          <table class="detail-stats-table">
+            <thead>
+              <tr>
+                <th class="detail-stats-table__player">Player</th>
+                ${colNames.map(n => `<th>${n}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${athletes.map(a => {
+                const athlete  = a.athlete ?? {};
+                const isStarter = a.starter;
+                const didNotPlay = a.didNotPlay || a.stats?.every(s => s === '0' || s === '—' || s === '');
+                return `
+                  <tr class="${isStarter ? 'detail-stats-row--starter' : ''}${didNotPlay ? ' detail-stats-row--dnp' : ''}">
+                    <td class="detail-stats-table__player">
+                      <span class="detail-stats-name">${athlete.shortName ?? athlete.displayName ?? '?'}</span>
+                      ${isStarter ? '<span class="detail-stats-starter">S</span>' : ''}
+                    </td>
+                    ${colIdxs.map(i => `<td>${a.stats[i] ?? '—'}</td>`).join('')}
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+
+  if (!teamSummaryHTML && !playerTablesHTML) {
+    return renderErrorState('Box score not yet available for this game.');
+  }
+
+  return `
+    <div class="detail-stats">
+      ${teamSummaryHTML}
+      ${playerTablesHTML}
+    </div>`;
+}
+
+// ── H2H tab ───────────────────────────────────────────────────────────────────
+
+function renderH2HTabHTML(game, meetings) {
+  if (!meetings.length) {
+    return `
+      <div class="detail-tab-placeholder">
+        <div class="detail-tab-placeholder__icon">⚔️</div>
+        <div class="detail-tab-placeholder__title">No recent matchups found</div>
+        <div class="detail-tab-placeholder__sub">These teams may not have met recently, or historical data is unavailable.</div>
+      </div>`;
+  }
+
+  const wins   = meetings.filter(m => m.ourTeamWon).length;
+  const losses = meetings.length - wins;
+
+  return `
+    <div class="detail-h2h">
+      <div class="detail-h2h__series">
+        <div class="detail-h2h__series-label">Last ${meetings.length} meetings</div>
+        <div class="detail-h2h__series-record">
+          <span class="detail-h2h__series-w">${wins}W</span>
+          <span class="detail-h2h__series-sep"> – </span>
+          <span class="detail-h2h__series-l">${losses}L</span>
+        </div>
+        <div class="detail-h2h__series-team">${game.homeTeam.name} perspective</div>
+      </div>
+
+      <div class="detail-h2h__list">
+        ${meetings.map(m => {
+          const d = new Date(m.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+          return `
+            <div class="detail-h2h__row">
+              <div class="detail-h2h__result ${m.ourTeamWon ? 'detail-h2h__result--w' : 'detail-h2h__result--l'}">
+                ${m.ourTeamWon ? 'W' : 'L'}
+              </div>
+              <div class="detail-h2h__matchup">
+                <div class="detail-h2h__teams">
+                  <span class="detail-h2h__team">${m.awayAbbr ?? m.awayTeam}</span>
+                  <span class="detail-h2h__score">${m.awayScore}</span>
+                  <span class="detail-h2h__at">@</span>
+                  <span class="detail-h2h__score">${m.homeScore}</span>
+                  <span class="detail-h2h__team">${m.homeAbbr ?? m.homeTeam}</span>
+                </div>
+                <div class="detail-h2h__date">${d}</div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+// ── Standings tab ─────────────────────────────────────────────────────────────
+
+function renderStandingsTabHTML(game, data) {
+  if (!data) {
+    return renderErrorState('Standings data unavailable for this league.');
+  }
+
+  // ESPN standings response can have different shapes; normalise them
+  const groups = extractStandingsGroups(data);
+  if (!groups.length) {
+    return renderErrorState('No standings data returned.');
+  }
+
+  function standingsNorm(s) { return (s ?? '').toLowerCase().replace(/[^a-z]/g, ''); }
+  const homeNorm = standingsNorm(game.homeTeam.name);
+  const awayNorm = standingsNorm(game.awayTeam.name);
+  function isGameTeam(teamName) {
+    const n = standingsNorm(teamName);
+    return n.includes(homeNorm.slice(0, 5)) || n.includes(awayNorm.slice(0, 5));
+  }
+
+  return `
+    <div class="detail-standings">
+      ${groups.map(group => `
+        <div class="detail-standings__group">
+          ${group.name ? `<div class="detail-standings__group-name">${group.name}</div>` : ''}
+          <table class="detail-standings-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Team</th>
+                <th>W</th>
+                <th>L</th>
+                <th>PCT</th>
+                <th>GB</th>
+                ${group.hasStreak ? '<th>Streak</th>' : ''}
+              </tr>
+            </thead>
+            <tbody>
+              ${group.entries.map((entry, idx) => {
+                const highlight = isGameTeam(entry.name);
+                return `
+                  <tr class="${highlight ? 'detail-standings-row--highlight' : ''}">
+                    <td class="detail-standings-rank">${idx + 1}</td>
+                    <td class="detail-standings-team">
+                      ${highlight ? '<span class="detail-standings-indicator">▸</span>' : ''}
+                      <span>${entry.abbr ?? entry.name}</span>
+                    </td>
+                    <td>${entry.wins ?? '—'}</td>
+                    <td>${entry.losses ?? '—'}</td>
+                    <td>${entry.pct ?? '—'}</td>
+                    <td>${entry.gb ?? '—'}</td>
+                    ${group.hasStreak ? `<td class="detail-standings-streak">${entry.streak ?? '—'}</td>` : ''}
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+/** Normalise the many ESPN standings shapes into a stable array of groups. */
+function extractStandingsGroups(data) {
+  const groups = [];
+
+  function parseEntries(entries) {
+    return (entries ?? []).map(e => {
+      const stat = name => e.stats?.find(s => s.name === name)?.displayValue ?? '—';
+      return {
+        name:   e.team?.displayName ?? e.team?.name ?? '?',
+        abbr:   e.team?.abbreviation,
+        wins:   stat('wins'),
+        losses: stat('losses'),
+        pct:    stat('winPercent') || stat('gamesBehind') ? stat('winPercent') : '—',
+        gb:     stat('gamesBehind'),
+        streak: stat('streak'),
+      };
+    });
+  }
+
+  // Shape 1: data.standings.entries (flat)
+  if (data.standings?.entries?.length) {
+    const entries = parseEntries(data.standings.entries);
+    const hasStreak = entries.some(e => e.streak !== '—');
+    groups.push({ name: '', entries, hasStreak });
+    return groups;
+  }
+
+  // Shape 2: data.standings.groups[].standings.entries
+  if (data.standings?.groups?.length) {
+    for (const g of data.standings.groups) {
+      const entries = parseEntries(g.standings?.entries ?? g.entries ?? []);
+      const hasStreak = entries.some(e => e.streak !== '—');
+      if (entries.length) groups.push({ name: g.name ?? g.displayName ?? '', entries, hasStreak });
+    }
+    return groups;
+  }
+
+  // Shape 3: data.children[].standings.entries (divisions)
+  if (data.children?.length) {
+    for (const child of data.children) {
+      const raw = child.standings?.entries ?? child.entries ?? [];
+      const entries = parseEntries(raw);
+      const hasStreak = entries.some(e => e.streak !== '—');
+      if (entries.length) groups.push({ name: child.name ?? child.displayName ?? '', entries, hasStreak });
+    }
+    return groups;
+  }
+
+  return groups;
 }
 
 // ── Summary tab ───────────────────────────────────────────────────────────────
@@ -287,14 +674,15 @@ function renderPlaceholderTab(icon, title, sub) {
     </div>`;
 }
 
+// Sync-only tab routing (async tabs show a skeleton; _loadTab fills them in)
 function renderTabContent(game) {
   switch (state.detailTab) {
     case 'summary':   return renderSummaryTab(game);
-    case 'odds':      return renderOddsTab(game);
-    case 'stats':     return renderPlaceholderTab('📈', 'Stats coming soon', 'Live box score and detailed stats will appear here once a data feed is connected.');
+    case 'odds':
+    case 'stats':
+    case 'h2h':
+    case 'standings': return renderLoadingSkeleton();
     case 'lineups':   return renderPlaceholderTab('📋', 'Lineups coming soon', 'Starting rosters and depth charts will appear here.');
-    case 'h2h':       return renderPlaceholderTab('⚔️', 'Head-to-Head coming soon', 'Last 10 matchups between these teams will appear here.');
-    case 'standings': return renderPlaceholderTab('🏆', 'Standings coming soon', 'Current league standings will appear here.');
     case 'news':      return renderPlaceholderTab('📰', 'News coming soon', 'Related news articles will appear here.');
     case 'injuries':  return renderPlaceholderTab('🏥', 'Injury report coming soon', 'Official injury designations will appear here.');
     default:          return renderSummaryTab(game);
@@ -311,7 +699,7 @@ export function renderGameDetailView(gameId) {
       <div style="padding:40px 20px;text-align:center">
         <div style="font-size:2rem;margin-bottom:12px">🔍</div>
         <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px">Game not found</div>
-        <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">The game ID "${gameId}" could not be found.</div>
+        <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">Navigate here from the scores feed to load this game.</div>
         <button class="btn btn--sm btn--outline" onclick="window.location.hash=''">← Back to scores</button>
       </div>`;
   }
@@ -333,43 +721,112 @@ export function renderGameDetailView(gameId) {
     </div>`;
 }
 
-/**
- * Bind tab and market clicks inside the detail view.
- * Called after mounting the view.
- */
+// ── Async tab loading ─────────────────────────────────────────────────────────
+
+let _loadVersion = 0;
+
+async function _loadTab(el, game) {
+  const ver     = ++_loadVersion;
+  const content = el.querySelector('#detailTabContent');
+  if (!content) return;
+
+  const tab = state.detailTab;
+
+  // Instant tabs
+  if (tab === 'summary') { content.innerHTML = renderSummaryTab(game); return; }
+  if (tab === 'lineups') { content.innerHTML = renderPlaceholderTab('📋', 'Lineups coming soon', 'Starting rosters and depth charts will appear here.'); return; }
+  if (tab === 'news')    { content.innerHTML = renderPlaceholderTab('📰', 'News coming soon', 'Related news articles will appear here.'); return; }
+  if (tab === 'injuries'){ content.innerHTML = renderPlaceholderTab('🏥', 'Injury report coming soon', 'Official injury designations will appear here.'); return; }
+
+  // Async tabs — show skeleton first
+  content.innerHTML = renderLoadingSkeleton();
+
+  try {
+    let html = '';
+
+    if (tab === 'odds') {
+      if (state.detailMarket === 'props') {
+        // Player props: need eventId from a prior odds fetch or trigger one now
+        let eventId = _lastEventId;
+        if (!eventId) {
+          const { eventId: id } = await fetchRealOdds(game);
+          if (ver !== _loadVersion) return;
+          eventId = id;
+          _lastEventId = id;
+        }
+        const props = eventId ? await fetchPlayerProps(eventId, game) : [];
+        if (ver !== _loadVersion) return;
+        html = renderPlayerPropsHTML(game, props);
+      } else {
+        const { odds: realOdds, eventId } = await fetchRealOdds(game);
+        if (ver !== _loadVersion) return;
+        _lastEventId = eventId;
+        const odds   = realOdds.length ? realOdds : getOddsForGame(game.id);
+        const isMock = realOdds.length === 0;
+        html = renderOddsTabHTML(game, odds, isMock);
+      }
+    } else if (tab === 'stats') {
+      const data = await fetchGameStats(game);
+      if (ver !== _loadVersion) return;
+      html = renderStatsTabHTML(game, data);
+    } else if (tab === 'h2h') {
+      const meetings = await fetchH2H(game);
+      if (ver !== _loadVersion) return;
+      html = renderH2HTabHTML(game, meetings);
+    } else if (tab === 'standings') {
+      const data = await fetchStandings(game);
+      if (ver !== _loadVersion) return;
+      html = renderStandingsTabHTML(game, data);
+    }
+
+    if (ver === _loadVersion) content.innerHTML = html;
+  } catch (err) {
+    if (ver === _loadVersion) content.innerHTML = renderErrorState(err.message);
+  }
+}
+
+// Cache last Odds API event ID across market switches so props don't need a fresh fetch
+let _lastEventId = null;
+
+// ── Binding ───────────────────────────────────────────────────────────────────
+
 export function bindDetailView(el, onRefresh) {
   if (!el) return;
 
+  const gameId = window.location.hash.replace(/^#\/?game\//, '');
+  const game   = getGameById(gameId);
+  if (!game) return;
+
+  // Reset props event cache when entering a new game
+  _lastEventId = null;
+
+  // Kick off initial async load for the current tab
+  _loadTab(el, game);
+
   el.addEventListener('click', e => {
-    // Detail tab switch
+    // Tab switch
     const tabBtn = e.target.closest('[data-tab]');
     if (tabBtn && tabBtn.closest('#detailTabsBar')) {
+      const prev = state.detailTab;
       setState({ detailTab: tabBtn.dataset.tab });
-      // Re-render only the content area
-      const content = el.querySelector('#detailTabContent');
-      if (content) {
-        const gameId = el.querySelector('.detail-view')?.dataset?.gameId ||
-          window.location.hash.replace('#game/', '');
-        const game = getGameById(gameId);
-        if (game) content.innerHTML = renderTabContent(game);
+      // Reset market to moneyline when switching away from odds (avoid stale props state)
+      if (prev === 'odds' && tabBtn.dataset.tab !== 'odds') {
+        setState({ detailMarket: 'moneyline' });
       }
-      // Sync active tab styles
       el.querySelectorAll('[data-tab]').forEach(b => {
         b.classList.toggle('detail-tab--active', b.dataset.tab === state.detailTab);
         b.setAttribute('aria-selected', b.dataset.tab === state.detailTab);
       });
+      _loadTab(el, game);
       return;
     }
 
     // Market selector
-    const marketBtn = e.target.closest('[data-market]');
-    if (marketBtn) {
-      setState({ detailMarket: marketBtn.dataset.market });
-      const content = el.querySelector('#detailTabContent');
-      if (content && state.detailTab === 'odds') {
-        const gameId = window.location.hash.replace(/^#game\//, '');
-        const game = getGameById(gameId);
-        if (game) content.innerHTML = renderOddsTab(game);
+    const mktBtn = e.target.closest('[data-market]');
+    if (mktBtn) {
+      setState({ detailMarket: mktBtn.dataset.market });
+      if (state.detailTab === 'odds') {
+        _loadTab(el, game);
       }
       return;
     }
