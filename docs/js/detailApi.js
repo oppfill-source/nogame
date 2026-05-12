@@ -85,7 +85,7 @@ export const PROP_LABEL = {
 
 const _cache  = new Map();
 const _stamp  = new Map();
-const TTL     = 120_000; // 2 minutes
+const TTL     = 120000; // 2 minutes
 
 async function cached(key, fn) {
   const now = Date.now();
@@ -101,7 +101,14 @@ async function cached(key, fn) {
 async function proxyFetch(endpoint, params = {}) {
   const paramStr = new URLSearchParams(params).toString();
   const url = `${PROXY}?endpoint=${encodeURIComponent(endpoint)}&params=${encodeURIComponent(paramStr)}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), 10000);
+  let res;
+  try {
+    res = await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if (!res.ok) throw new Error(`odds-proxy ${res.status}`);
   return res.json();
 }
@@ -113,9 +120,10 @@ function norm(name) {
 function teamMatch(a, b) {
   const na = norm(a), nb = norm(b);
   if (na === nb) return true;
-  const la = na.split(' ').at(-1), lb = nb.split(' ').at(-1);
+  const naParts = na.split(' '), nbParts = nb.split(' ');
+  const la = naParts[naParts.length - 1], lb = nbParts[nbParts.length - 1];
   if (la && lb && la === lb) return true;
-  return na.split(' ').some(w => w.length > 3 && nb.includes(w));
+  return naParts.some(function(w) { return w.length > 3 && nb.includes(w); });
 }
 
 // "espn-401671869" → "401671869", or null for mock IDs
@@ -148,7 +156,7 @@ export async function fetchRealOdds(game) {
     const event = events.find(ev => {
       if (!teamMatch(ev.home_team, game.homeTeam.name)) return false;
       if (!teamMatch(ev.away_team, game.awayTeam.name)) return false;
-      return Math.abs(new Date(ev.commence_time).getTime() - gameTime) < 24 * 3_600_000;
+      return Math.abs(new Date(ev.commence_time).getTime() - gameTime) < 86400000;
     });
 
     if (!event) return { odds: [], eventId: null };
@@ -254,6 +262,17 @@ export async function fetchPlayerProps(eventId, game) {
   }
 }
 
+// ── Fetch helper ──────────────────────────────────────────────────────────────
+
+function timedFetch(url, ms) {
+  var controller = new AbortController();
+  var id = setTimeout(function() { controller.abort(); }, ms);
+  return fetch(url, { signal: controller.signal }).then(
+    function(r) { clearTimeout(id); return r; },
+    function(e) { clearTimeout(id); throw e; }
+  );
+}
+
 // ── ESPN Stats (box score) ────────────────────────────────────────────────────
 
 /**
@@ -267,7 +286,7 @@ export async function fetchGameStats(game) {
 
   try {
     return await cached(`stats:${game.id}`, async () => {
-      const res = await fetch(`${ESPN}/${path}/summary?event=${eventId}`, { signal: AbortSignal.timeout(8_000) });
+      const res = await timedFetch(`${ESPN}/${path}/summary?event=${eventId}`, 8000);
       if (!res.ok) throw new Error(`ESPN summary ${res.status}`);
       return res.json();
     });
@@ -291,7 +310,7 @@ export async function fetchH2H(game) {
 
   try {
     return await cached(`h2h:${game.homeTeam.id}:${game.awayTeam.id}`, async () => {
-      const res = await fetch(`${ESPN}/${path}/teams/${homeEspnId}/schedule`, { signal: AbortSignal.timeout(8_000) });
+      const res = await timedFetch(`${ESPN}/${path}/teams/${homeEspnId}/schedule`, 8000);
       if (!res.ok) throw new Error(`ESPN team schedule ${res.status}`);
       const data = await res.json();
 
@@ -341,7 +360,7 @@ export async function fetchStandings(game) {
 
   try {
     return await cached(`standings:${game.leagueId}`, async () => {
-      const res = await fetch(`${ESPN_V2}/${path}/standings`, { signal: AbortSignal.timeout(8_000) });
+      const res = await timedFetch(`${ESPN_V2}/${path}/standings`, 8000);
       if (!res.ok) throw new Error(`ESPN standings ${res.status}`);
       return res.json();
     });

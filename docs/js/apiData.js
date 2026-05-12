@@ -30,7 +30,7 @@ const PATH_TO_SPORT = {
 
 const _cache     = new Map(); // cacheKey → Game[]
 const _fetchedAt = new Map(); // cacheKey → timestamp
-const CACHE_TTL  = 60_000;   // refresh live data every 60 s
+const CACHE_TTL  = 60000;    // refresh live data every 60 s
 
 function offsetToDateStr(offset) {
   const d = new Date();
@@ -84,7 +84,11 @@ async function fetchLeague(leagueId, dateStr) {
   const sportId = PATH_TO_SPORT[path];
   const url     = `${ESPN}/${path}/scoreboard?dates=${dateStr}&limit=50`;
 
-  const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(function() { controller.abort(); }, 6000);
+  const res = await fetch(url, { signal: controller.signal }).finally(function() {
+    clearTimeout(timeoutId);
+  });
   if (!res.ok) throw new Error(`ESPN ${leagueId}: HTTP ${res.status}`);
 
   const { events = [] } = await res.json();
