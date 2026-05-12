@@ -134,8 +134,10 @@ async function fetchLeague(leagueId, dateStr) {
  */
 export async function fetchGamesForOffset(dayOffset) {
   const dateStr = offsetToDateStr(dayOffset);
-  const settled = await Promise.allSettled(
-    Object.keys(LEAGUE_PATHS).map(id => fetchLeague(id, dateStr))
+  const results = await Promise.all(
+    Object.keys(LEAGUE_PATHS).map(function(id) {
+      return fetchLeague(id, dateStr).catch(function() { return []; });
+    })
   );
-  return settled.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+  return results.reduce(function(acc, arr) { return acc.concat(arr); }, []);
 }

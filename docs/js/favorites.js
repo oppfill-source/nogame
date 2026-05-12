@@ -19,7 +19,7 @@ function read() {
 }
 
 function write(state) {
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_e) {}
   for (const l of listeners) l(state);
 }
 

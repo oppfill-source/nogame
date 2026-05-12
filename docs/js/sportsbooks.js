@@ -58,7 +58,7 @@ export const SPORTSBOOKS = [
   },
 ];
 
-const BY_ID = Object.fromEntries(SPORTSBOOKS.map(b => [b.id, b]));
+const BY_ID = SPORTSBOOKS.reduce(function(acc, b) { acc[b.id] = b; return acc; }, {});
 
 export function getSportsbook(id) {
   return BY_ID[id] || null;

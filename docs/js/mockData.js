@@ -42,7 +42,7 @@ export const LEAGUES = [
   { id: 'pga',         sportId: 'golf',    name: 'PGA Tour',           country: 'USA',   season: '2026'    },
 ];
 
-const LEAGUES_BY_ID = Object.fromEntries(LEAGUES.map(l => [l.id, l]));
+const LEAGUES_BY_ID = LEAGUES.reduce(function(acc, l) { acc[l.id] = l; return acc; }, {});
 
 // ── Teams (compact subset; production data would ship from API) ─────────────
 export const TEAMS = [
@@ -99,7 +99,7 @@ export const TEAMS = [
   { id:'bay',  leagueId:'ucl',    name:'Bayern München',       abbr:'BAY', city:'Munich' },
 ];
 
-const TEAMS_BY_ID = Object.fromEntries(TEAMS.map(t => [t.id, t]));
+const TEAMS_BY_ID = TEAMS.reduce(function(acc, t) { acc[t.id] = t; return acc; }, {});
 
 // ── Deterministic mock-game generator ───────────────────────────────────────
 // Same input (date offset) → same output. Live games tick via Date.now()
