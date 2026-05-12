@@ -71,7 +71,7 @@ async function loadRealData(offsets) {
           mountRightSidebar();
         }
       }
-    } catch {
+    } catch (_e) {
       // network error — mock data remains in place
     }
   }

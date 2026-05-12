@@ -651,37 +651,37 @@
   font-weight: 600;
 }
 
-.detail-h2h__list { display: flex; flex-direction: column; gap: 8px; }
+.detail-h2h__meetings { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 
 .detail-h2h__row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 10px 14px;
   background: var(--surface);
   border-radius: 8px;
   border: 1px solid var(--border-sub);
 }
 
 .detail-h2h__result {
-  width: 28px; height: 28px;
+  width: 26px; height: 26px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: .72rem;
+  font-size: .7rem;
   font-weight: 800;
   flex-shrink: 0;
 }
 .detail-h2h__result--w { background: rgba(34,197,94,.15); color: var(--green); }
 .detail-h2h__result--l { background: rgba(239,68,68,.15); color: var(--red); }
 
-.detail-h2h__matchup { flex: 1; }
-.detail-h2h__teams {
+.detail-h2h__matchup {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: .88rem;
+  font-size: .86rem;
   font-weight: 600;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -690,10 +690,45 @@
 .detail-h2h__score { color: var(--text); font-weight: 700; }
 .detail-h2h__at { color: var(--text-muted); font-size: .75rem; }
 .detail-h2h__date {
-  font-size: .72rem;
+  font-size: .7rem;
   color: var(--text-muted);
-  margin-top: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+
+/* ── H2H form (last 10 games per team) ───────────────────────────────────── */
+.detail-h2h__form-section { margin-bottom: 20px; }
+.detail-h2h__form-header {
+  font-size: .68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-muted);
+  padding: 0 2px 8px;
+}
+.detail-h2h__form-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8rem;
+}
+.detail-h2h__form-table thead th {
+  font-size: .63rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-sub);
+}
+.detail-h2h__form-table tbody tr { border-bottom: 1px solid var(--border-sub); }
+.detail-h2h__form-table tbody tr:last-child { border-bottom: none; }
+.detail-h2h__form-table td { padding: 7px 8px; }
+.detail-h2h__form-table td.detail-h2h__result { vertical-align: middle; }
+.detail-h2h__form-opp { font-weight: 600; color: var(--text); }
+.detail-h2h__form-score { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); white-space: nowrap; }
+.detail-h2h__form-date { color: var(--text-muted); font-size: .7rem; white-space: nowrap; }
+.detail-h2h__form-h2h { background: rgba(34,197,94,.04); }
 
 /* ── Standings tab ────────────────────────────────────────────────────────── */
 .detail-standings { padding: 0; }

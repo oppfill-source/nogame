@@ -458,53 +458,85 @@ function renderStatsTabHTML(game, data) {
 
 // ── H2H tab ───────────────────────────────────────────────────────────────────
 
-function renderH2HTabHTML(game, meetings) {
-  if (!meetings.length) {
+function renderH2HTabHTML(game, h2hData) {
+  const meetings = (h2hData && h2hData.meetings) ? h2hData.meetings : [];
+  const homeForm = (h2hData && h2hData.homeForm) ? h2hData.homeForm : [];
+  const awayForm = (h2hData && h2hData.awayForm) ? h2hData.awayForm : [];
+
+  if (!meetings.length && !homeForm.length && !awayForm.length) {
     return `
       <div class="detail-tab-placeholder">
         <div class="detail-tab-placeholder__icon">⚔️</div>
-        <div class="detail-tab-placeholder__title">No recent matchups found</div>
-        <div class="detail-tab-placeholder__sub">These teams may not have met recently, or historical data is unavailable.</div>
+        <div class="detail-tab-placeholder__title">No recent data found</div>
+        <div class="detail-tab-placeholder__sub">Historical game data is unavailable for this matchup.</div>
       </div>`;
   }
 
   const wins   = meetings.filter(m => m.ourTeamWon).length;
   const losses = meetings.length - wins;
 
-  return `
-    <div class="detail-h2h">
-      <div class="detail-h2h__series">
-        <div class="detail-h2h__series-label">Last ${meetings.length} meetings</div>
-        <div class="detail-h2h__series-record">
-          <span class="detail-h2h__series-w">${wins}W</span>
-          <span class="detail-h2h__series-sep"> – </span>
-          <span class="detail-h2h__series-l">${losses}L</span>
-        </div>
-        <div class="detail-h2h__series-team">${game.homeTeam.name} perspective</div>
-      </div>
+  function formRow(g) {
+    const d   = new Date(g.date).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const loc = g.isHome ? 'vs' : '@';
+    const cls = g.isH2H ? ' class="detail-h2h__form-h2h"' : '';
+    const res = g.won ? 'W' : 'L';
+    const resCls = g.won ? 'detail-h2h__result--w' : 'detail-h2h__result--l';
+    return `
+      <tr${cls}>
+        <td class="detail-h2h__result ${resCls}">${res}</td>
+        <td class="detail-h2h__form-opp">${loc} ${g.oppAbbr || g.opponent}</td>
+        <td class="detail-h2h__form-score">${g.ourScore}–${g.oppScore}</td>
+        <td class="detail-h2h__form-date">${d}</td>
+      </tr>`;
+  }
 
-      <div class="detail-h2h__list">
-        ${meetings.map(m => {
-          const d = new Date(m.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-          return `
-            <div class="detail-h2h__row">
-              <div class="detail-h2h__result ${m.ourTeamWon ? 'detail-h2h__result--w' : 'detail-h2h__result--l'}">
-                ${m.ourTeamWon ? 'W' : 'L'}
-              </div>
-              <div class="detail-h2h__matchup">
-                <div class="detail-h2h__teams">
-                  <span class="detail-h2h__team">${m.awayAbbr ?? m.awayTeam}</span>
-                  <span class="detail-h2h__score">${m.awayScore}</span>
-                  <span class="detail-h2h__at">@</span>
-                  <span class="detail-h2h__score">${m.homeScore}</span>
-                  <span class="detail-h2h__team">${m.homeAbbr ?? m.homeTeam}</span>
-                </div>
-                <div class="detail-h2h__date">${d}</div>
-              </div>
-            </div>`;
-        }).join('')}
+  const seriesHTML = meetings.length ? `
+    <div class="detail-h2h__series">
+      <div class="detail-h2h__series-label">Last ${meetings.length} direct meeting${meetings.length === 1 ? '' : 's'}</div>
+      <div class="detail-h2h__series-record">
+        <span class="detail-h2h__series-w">${wins}W</span>
+        <span class="detail-h2h__series-sep"> – </span>
+        <span class="detail-h2h__series-l">${losses}L</span>
       </div>
-    </div>`;
+      <div class="detail-h2h__series-team">${game.homeTeam.abbr} perspective</div>
+    </div>
+    <div class="detail-h2h__meetings">
+      ${meetings.map(m => {
+        const d = new Date(m.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: '2-digit' });
+        return `
+          <div class="detail-h2h__row">
+            <div class="detail-h2h__result ${m.ourTeamWon ? 'detail-h2h__result--w' : 'detail-h2h__result--l'}">${m.ourTeamWon ? 'W' : 'L'}</div>
+            <div class="detail-h2h__matchup">
+              <span class="detail-h2h__team">${m.awayAbbr}</span>
+              <span class="detail-h2h__score">${m.awayScore}</span>
+              <span class="detail-h2h__at">@</span>
+              <span class="detail-h2h__score">${m.homeScore}</span>
+              <span class="detail-h2h__team">${m.homeAbbr}</span>
+            </div>
+            <div class="detail-h2h__date">${d}</div>
+          </div>`;
+      }).join('')}
+    </div>` : '';
+
+  const homeFormHTML = homeForm.length ? `
+    <div class="detail-h2h__form-section">
+      <div class="detail-h2h__form-header">${game.homeTeam.abbr} — Last ${homeForm.length} Games</div>
+      <table class="detail-h2h__form-table">
+        <thead><tr><th></th><th>Opponent</th><th>Score</th><th>Date</th></tr></thead>
+        <tbody>${homeForm.map(formRow).join('')}</tbody>
+      </table>
+    </div>` : '';
+
+  const awayFormHTML = awayForm.length ? `
+    <div class="detail-h2h__form-section">
+      <div class="detail-h2h__form-header">${game.awayTeam.abbr} — Last ${awayForm.length} Games</div>
+      <table class="detail-h2h__form-table">
+        <thead><tr><th></th><th>Opponent</th><th>Score</th><th>Date</th></tr></thead>
+        <tbody>${awayForm.map(formRow).join('')}</tbody>
+      </table>
+    </div>` : '';
+
+  return `<div class="detail-h2h">${seriesHTML}${homeFormHTML}${awayFormHTML}</div>`;
 }
 
 // ── Standings tab ─────────────────────────────────────────────────────────────
@@ -770,9 +802,9 @@ async function _loadTab(el, game) {
       if (ver !== _loadVersion) return;
       html = renderStatsTabHTML(game, data);
     } else if (tab === 'h2h') {
-      const meetings = await fetchH2H(game);
+      const h2hData = await fetchH2H(game);
       if (ver !== _loadVersion) return;
-      html = renderH2HTabHTML(game, meetings);
+      html = renderH2HTabHTML(game, h2hData);
     } else if (tab === 'standings') {
       const data = await fetchStandings(game);
       if (ver !== _loadVersion) return;

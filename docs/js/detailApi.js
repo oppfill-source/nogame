@@ -299,52 +299,93 @@ export async function fetchGameStats(game) {
 // ── ESPN H2H ──────────────────────────────────────────────────────────────────
 
 /**
- * Fetch the last 5 completed meetings between the two teams.
- * @returns {Meeting[]}  Meeting = { date, homeTeam, awayTeam, homeScore, awayScore, ourTeamWon }
- *   "ourTeam" = the home team in the current game being viewed
+ * Fetch last 10 games for each team + direct matchup history.
+ * @returns {{ meetings: Meeting[], homeForm: FormGame[], awayForm: FormGame[] }}
  */
 export async function fetchH2H(game) {
   const path       = ESPN_PATH[game.leagueId];
   const homeEspnId = espnTeamId(game.homeTeam.id);
-  if (!path || !homeEspnId) return [];
+  const awayEspnId = espnTeamId(game.awayTeam.id);
+  const empty      = { meetings: [], homeForm: [], awayForm: [] };
+  if (!path || !homeEspnId) return empty;
 
   try {
-    return await cached(`h2h:${game.homeTeam.id}:${game.awayTeam.id}`, async () => {
-      const res = await timedFetch(`${ESPN}/${path}/teams/${homeEspnId}/schedule`, 8000);
-      if (!res.ok) throw new Error(`ESPN team schedule ${res.status}`);
-      const data = await res.json();
+    return await cached(`h2h2:${game.homeTeam.id}:${game.awayTeam.id}`, async () => {
+      const getSchedule = async (teamId) => {
+        const r = await timedFetch(`${ESPN}/${path}/teams/${teamId}/schedule`, 8000);
+        if (!r.ok) return { events: [] };
+        return r.json();
+      };
 
-      return (data.events ?? [])
+      const [homeData, awayData] = await Promise.all([
+        getSchedule(homeEspnId),
+        awayEspnId ? getSchedule(awayEspnId) : Promise.resolve({ events: [] }),
+      ]);
+
+      const isFinished = (ev) => {
+        const n = ev.competitions?.[0]?.status?.type?.name ?? '';
+        return n.includes('FINAL') || n.includes('END');
+      };
+
+      const parseForm = (events, ourName, theirName) =>
+        (events ?? []).filter(isFinished).slice(-10).map(ev => {
+          const comp = ev.competitions[0];
+          const home = comp.competitors.find(c => c.homeAway === 'home') ?? comp.competitors[0];
+          const away = comp.competitors.find(c => c.homeAway === 'away') ?? comp.competitors[1];
+          const hs   = Number(home?.score ?? 0);
+          const as_  = Number(away?.score ?? 0);
+          const ourIsHome = teamMatch(home?.team?.displayName ?? '', ourName);
+          const ourScore  = ourIsHome ? hs : as_;
+          const oppScore  = ourIsHome ? as_ : hs;
+          const oppName   = ourIsHome ? (away?.team?.displayName ?? '?') : (home?.team?.displayName ?? '?');
+          const oppAbbr   = ourIsHome ? (away?.team?.abbreviation ?? '?') : (home?.team?.abbreviation ?? '?');
+          return {
+            date:     ev.date,
+            opponent: oppName,
+            oppAbbr,
+            isHome:   ourIsHome,
+            ourScore,
+            oppScore,
+            won:      ourScore > oppScore,
+            isH2H:    teamMatch(oppName, theirName),
+          };
+        });
+
+      const meetings = (homeData.events ?? [])
         .filter(ev => {
-          const status = ev.competitions?.[0]?.status?.type?.name ?? '';
-          if (!status.includes('FINAL') && !status.includes('END')) return false;
+          if (!isFinished(ev)) return false;
           const comps = ev.competitions?.[0]?.competitors ?? [];
           return comps.some(c => teamMatch(c.team?.displayName ?? '', game.awayTeam.name));
         })
-        .slice(-6)
-        .slice(0, 5)
-        .reverse()
+        .slice(-6).slice(0, 5).reverse()
         .map(ev => {
           const comp = ev.competitions[0];
           const home = comp.competitors.find(c => c.homeAway === 'home') ?? comp.competitors[0];
           const away = comp.competitors.find(c => c.homeAway === 'away') ?? comp.competitors[1];
-          const hs = Number(home?.score ?? 0), as_ = Number(away?.score ?? 0);
+          const hs   = Number(home?.score ?? 0);
+          const as_  = Number(away?.score ?? 0);
           const ourTeamIsHome = teamMatch(home?.team?.displayName ?? '', game.homeTeam.name);
           return {
-            date:        ev.date,
-            homeTeam:    home?.team?.displayName ?? '?',
-            homeAbbr:    home?.team?.abbreviation ?? '?',
-            awayTeam:    away?.team?.displayName ?? '?',
-            awayAbbr:    away?.team?.abbreviation ?? '?',
-            homeScore:   hs,
-            awayScore:   as_,
-            ourTeamWon:  ourTeamIsHome ? hs > as_ : as_ > hs,
+            date:       ev.date,
+            homeTeam:   home?.team?.displayName ?? '?',
+            homeAbbr:   home?.team?.abbreviation ?? '?',
+            awayTeam:   away?.team?.displayName ?? '?',
+            awayAbbr:   away?.team?.abbreviation ?? '?',
+            homeScore:  hs,
+            awayScore:  as_,
+            ourTeamWon: ourTeamIsHome ? hs > as_ : as_ > hs,
           };
         });
+
+      return {
+        meetings,
+        homeForm: parseForm(homeData.events, game.homeTeam.name, game.awayTeam.name),
+        awayForm: parseForm(awayData.events, game.awayTeam.name, game.homeTeam.name),
+      };
     });
   } catch (err) {
     console.warn('[detailApi] fetchH2H:', err.message);
-    return [];
+    return empty;
   }
 }
 

@@ -7,7 +7,7 @@ const PREFS_KEY = 'nogame.prefs.v1';
 function loadPrefs() {
   try {
     return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
-  } catch { return {}; }
+  } catch (_e) { return {}; }
 }
 
 function savePrefs() {
@@ -19,7 +19,7 @@ function savePrefs() {
       preferredBooks: state.preferredBooks,
       themeMode: state.themeMode,
     }));
-  } catch { /* storage unavailable */ }
+  } catch (_e) { /* storage unavailable */ }
 }
 
 const prefs = loadPrefs();

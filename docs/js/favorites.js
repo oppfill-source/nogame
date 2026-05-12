@@ -13,7 +13,7 @@ function read() {
       games: Array.isArray(parsed.games) ? parsed.games : [],
       teams: Array.isArray(parsed.teams) ? parsed.teams : [],
     };
-  } catch {
+  } catch (_e) {
     return { games: [], teams: [] };
   }
 }
