@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NoGame — Stop Gambling. Start Winning.</title>
+  <meta name="description" content="NoGame helps serious bettors make data-driven decisions, track performance, and reduce risk. AI-powered picks, live odds comparison, and bankroll analytics." />
+  <meta property="og:title" content="NoGame — Stop Gambling. Start Winning." />
+  <meta property="og:description" content="Data-driven sports betting analytics. Not guesswork." />
+  <meta property="og:url" content="https://nogame.dev" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── NAV ───────────────────────────────────────────────────────────────── -->
+  <nav class="nav" id="nav">
+    <div class="container nav__inner">
+      <a href="#" class="nav__logo">
+        <span class="logo-mark">N</span>
+        <span>NoGame</span>
+      </a>
+      <div class="nav__links">
+        <a href="index.html">Live Scores</a>
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#cta" class="btn btn--sm btn--primary">Get the App</a>
+      </div>
+      <button class="nav__burger" id="burger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav__mobile" id="mobileMenu">
+      <a href="index.html" onclick="closeMobile()">Live Scores</a>
+      <a href="#features" onclick="closeMobile()">Features</a>
+      <a href="#how-it-works" onclick="closeMobile()">How It Works</a>
+      <a href="#cta" class="btn btn--primary btn--block" onclick="closeMobile()">Get the App</a>
+    </div>
+  </nav>
+
+  <!-- ── HERO ──────────────────────────────────────────────────────────────── -->
+  <section class="hero" id="home">
+    <div class="container hero__inner">
+      <div class="hero__badge">
+        <span class="badge-dot"></span>
+        AI-Powered Betting Analytics
+      </div>
+      <h1 class="hero__headline">
+        Stop Gambling.<br />
+        <span class="text-green">Start Winning.</span>
+      </h1>
+      <p class="hero__sub">
+        NoGame turns raw odds data into actionable intelligence — so every bet
+        you place is backed by math, not gut feeling.
+      </p>
+      <div class="hero__ctas">
+        <a href="#cta" class="btn btn--primary btn--lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.36.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.53 3.99zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+          App Store
+        </a>
+        <a href="#cta" class="btn btn--outline btn--lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.3.17.64.24.99.2l12.5-7.22-2.83-2.83-10.66 9.85zm16.7-10.26L16.76 11l3.12-1.8c.9-.52.9-1.38 0-1.9L4.17.24C3.82.07 3.47.04 3.17.2L14.1 11.13l5.78-2.49v4.86zM3.18.2c-.35.2-.57.6-.57 1.1v21.4c0 .5.22.9.57 1.1l.1.06L14.1 12.87v-.27L3.28.14l-.1.06zM16.76 13l3.12 1.8-3.12 1.8-2.66-1.8 2.66-1.8z"/></svg>
+          Google Play
+        </a>
+      </div>
+      <p class="hero__disclaimer">Free to download · No credit card required</p>
+
+      <!-- mock phone mockup -->
+      <div class="hero__mockup" aria-hidden="true">
+        <div class="phone">
+          <div class="phone__screen">
+            <div class="phone__bar"></div>
+            <div class="mock-card">
+              <div class="mock-card__row">
+                <span class="mock-tag mock-tag--green">NFL</span>
+                <span class="mock-tag mock-tag--indigo">AI Pick</span>
+                <span class="mock-time">Sun 1:00 PM</span>
+              </div>
+              <div class="mock-matchup">
+                <span>Chiefs</span>
+                <span class="mock-at">@</span>
+                <span>Eagles</span>
+              </div>
+              <div class="mock-odds">
+                <div class="mock-odds__chip">
+                  <span>Away ML</span>
+                  <strong>+115</strong>
+                </div>
+                <div class="mock-odds__chip">
+                  <span>Spread</span>
+                  <strong>-2.5</strong>
+                </div>
+                <div class="mock-odds__chip">
+                  <span>Home ML</span>
+                  <strong>-135</strong>
+                </div>
+              </div>
+            </div>
+            <div class="mock-ai">
+              <div class="mock-ai__header">
+                <span class="mock-ai__label">⚡ NoGame AI</span>
+                <span class="mock-ai__rating">8.4/10</span>
+              </div>
+              <div class="mock-ai__bar">
+                <div class="mock-ai__fill" style="width:84%"></div>
+              </div>
+              <p class="mock-ai__text">Strong value on Chiefs ML. Line movement suggests sharp action. Implied prob gap: 6.2%.</p>
+            </div>
+            <div class="mock-stat-row">
+              <div class="mock-stat">
+                <span class="mock-stat__val text-green">+$340</span>
+                <span class="mock-stat__lbl">This Month</span>
+              </div>
+              <div class="mock-stat">
+                <span class="mock-stat__val">63%</span>
+                <span class="mock-stat__lbl">Win Rate</span>
+              </div>
+              <div class="mock-stat">
+                <span class="mock-stat__val">+8.2%</span>
+                <span class="mock-stat__lbl">ROI</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SOCIAL PROOF ───────────────────────────────────────────────────────── -->
+  <section class="social-proof">
+    <div class="container social-proof__inner">
+      <div class="stat-pill">
+        <strong>40+</strong>
+        <span>Bookmakers tracked</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-pill">
+        <strong>Live odds</strong>
+        <span>Updated in real time</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-pill">
+        <strong>AI picks</strong>
+        <span>Rated 1–10 for value</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-pill">
+        <strong>Free</strong>
+        <span>No subscription required</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PROBLEM ────────────────────────────────────────────────────────────── -->
+  <section class="problem" id="problem">
+    <div class="container problem__inner">
+      <div class="section-label">The Problem</div>
+      <h2>Most bettors lose because they don't have the right data</h2>
+      <p class="section-sub">
+        You're up against sportsbooks with teams of analysts, pricing algorithms,
+        and decades of data. Betting on instinct isn't a strategy — it's a donation.
+      </p>
+      <div class="problem__cards">
+        <div class="problem__card">
+          <div class="problem__icon problem__icon--red">✗</div>
+          <h3>Line shopping is tedious</h3>
+          <p>Comparing odds across 10+ apps takes time you don't have. You miss value and settle for whatever's easy.</p>
+        </div>
+        <div class="problem__card">
+          <div class="problem__icon problem__icon--amber">✗</div>
+          <h3>No performance tracking</h3>
+          <p>Without records, you can't tell if you're winning or losing. Recency bias makes your worst bets feel like your best ideas.</p>
+        </div>
+        <div class="problem__card">
+          <div class="problem__icon problem__icon--red">✗</div>
+          <h3>Gut feeling isn't an edge</h3>
+          <p>Casual picks, hot takes, and "locks" are marketing — not analysis. The house always wins when you're guessing.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FEATURES ───────────────────────────────────────────────────────────── -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-label">The Solution</div>
+      <h2>Everything you need to bet with an edge</h2>
+      <p class="section-sub">NoGame brings professional-grade analytics to your phone — no spreadsheets, no subscriptions, no nonsense.</p>
+
+      <div class="features__grid">
+
+        <div class="feature-card feature-card--large">
+          <div class="feature-card__icon">⚡</div>
+          <h3>AI-Powered Value Picks</h3>
+          <p>Our AI scans live odds across 40+ bookmakers and surfaces picks where the market is mis-priced. Every pick is rated 1–10 for value — no noise, just signal.</p>
+          <ul class="feature-list">
+            <li>Identifies implied probability gaps</li>
+            <li>Rates picks from "Marginal" to "Elite Value"</li>
+            <li>Plain-English reasoning for every pick</li>
+            <li>Push alerts for high-value opportunities</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">📊</div>
+          <h3>Live Odds Comparison</h3>
+          <p>See every bookmaker's line side by side. Best odds are highlighted automatically so you never leave money on the table.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">📈</div>
+          <h3>Bankroll Tracking</h3>
+          <p>Track every bet, see your true ROI, and use the built-in Kelly Criterion calculator to size positions correctly.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">👥</div>
+          <h3>Community Picks</h3>
+          <p>Follow sharp bettors, share your picks, and learn from real performance data — not just social media bravado.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">🏈</div>
+          <h3>17 Sports Covered</h3>
+          <p>NFL, NBA, MLB, NHL, soccer, tennis, MMA, and more — with odds from DraftKings, FanDuel, BetMGM, and 40+ others.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ────────────────────────────────────────────────────────── -->
+  <section class="how" id="how-it-works">
+    <div class="container">
+      <div class="section-label">How It Works</div>
+      <h2>From data to decision in seconds</h2>
+      <p class="section-sub">NoGame does the heavy analysis so you can focus on making the call.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step__num">01</div>
+          <div class="step__body">
+            <h3>Browse today's games</h3>
+            <p>See every upcoming game filtered by sport. Live odds from 40+ bookmakers update automatically — no manual refreshes needed.</p>
+          </div>
+        </div>
+        <div class="step__connector"></div>
+        <div class="step">
+          <div class="step__num">02</div>
+          <div class="step__body">
+            <h3>Check AI picks</h3>
+            <p>NoGame AI runs every 15 minutes, scanning for value. When it finds a mis-priced line, you get a push notification with the pick, reasoning, and value rating.</p>
+          </div>
+        </div>
+        <div class="step__connector"></div>
+        <div class="step">
+          <div class="step__num">03</div>
+          <div class="step__body">
+            <h3>Compare & click through</h3>
+            <p>Tap any pick to see which bookmaker has the best odds. One tap opens the sportsbook app directly to that game — no searching required.</p>
+          </div>
+        </div>
+        <div class="step__connector"></div>
+        <div class="step">
+          <div class="step__num">04</div>
+          <div class="step__body">
+            <h3>Track your results</h3>
+            <p>Log every bet and watch your bankroll, ROI, and win rate build over time. Patterns become obvious when you have real data.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TESTIMONIALS ───────────────────────────────────────────────────────── -->
+  <section class="testimonials">
+    <div class="container">
+      <div class="section-label">Early Users</div>
+      <h2>Built for bettors who take it seriously</h2>
+      <div class="testimonials__grid">
+        <div class="testimonial">
+          <div class="testimonial__stars">★★★★★</div>
+          <p>"Finally an app that shows me where the actual value is instead of just giving me the same lines I can see anywhere."</p>
+          <div class="testimonial__author">— Marcus T., Sports bettor since 2019</div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial__stars">★★★★★</div>
+          <p>"The Kelly calculator alone changed how I size my bets. Went from winging it to actually managing a bankroll."</p>
+          <div class="testimonial__author">— Jordan K., Daily fantasy & sports bettor</div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial__stars">★★★★★</div>
+          <p>"Tracked my bets for the first time ever and realized I was way more profitable on NFL than I thought. The data doesn't lie."</p>
+          <div class="testimonial__author">— Sam R., Recreational bettor</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ────────────────────────────────────────────────────────────────── -->
+  <section class="cta-section" id="cta">
+    <div class="container cta-section__inner">
+      <div class="cta-section__badge">Free Download</div>
+      <h2>Ready to bet smarter?</h2>
+      <p>Download NoGame and make your first data-driven pick today. Free — no subscription, no credit card.</p>
+      <div class="cta-section__btns">
+        <a href="#" class="btn btn--primary btn--lg store-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.36.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.53 3.99zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+          <div>
+            <span class="store-btn__sub">Download on the</span>
+            <span class="store-btn__main">App Store</span>
+          </div>
+        </a>
+        <a href="#" class="btn btn--dark btn--lg store-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.3.17.64.24.99.2l12.5-7.22-2.83-2.83-10.66 9.85zm16.7-10.26L16.76 11l3.12-1.8c.9-.52.9-1.38 0-1.9L4.17.24C3.82.07 3.47.04 3.17.2L14.1 11.13l5.78-2.49v4.86zM3.18.2c-.35.2-.57.6-.57 1.1v21.4c0 .5.22.9.57 1.1l.1.06L14.1 12.87v-.27L3.28.14l-.1.06zM16.76 13l3.12 1.8-3.12 1.8-2.66-1.8 2.66-1.8z"/></svg>
+          <div>
+            <span class="store-btn__sub">Get it on</span>
+            <span class="store-btn__main">Google Play</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <a href="#" class="nav__logo">
+          <span class="logo-mark">N</span>
+          <span>NoGame</span>
+        </a>
+        <p>Stop Gambling. Start Winning.</p>
+      </div>
+      <div class="footer__links">
+        <div>
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#cta">Download</a>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms of Service</a>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <a href="mailto:hello@nogame.dev">hello@nogame.dev</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer__disclaimer">
+      <div class="container">
+        <p>
+          <strong>Responsible Gambling:</strong> NoGame is an analytics and data tool only. We do not accept bets or operate as a sportsbook.
+          Gambling involves real financial risk. Only bet what you can afford to lose.
+          If gambling is affecting your life, call the <strong>National Problem Gambling Helpline: 1-800-522-4700</strong> or visit
+          <a href="https://www.ncpgambling.org" target="_blank" rel="noopener">ncpgambling.org</a>.
+          Must be 21+ and located in a jurisdiction where sports betting is legal.
+        </p>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <div class="container">
+        <p>© 2026 NoGame. All rights reserved. nogame.dev</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Nav scroll effect
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('nav--scrolled', window.scrollY > 20);
+    });
+
+    // Mobile menu
+    const burger = document.getElementById('burger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    burger.addEventListener('click', () => {
+      burger.classList.toggle('active');
+      mobileMenu.classList.toggle('open');
+    });
+    function closeMobile() {
+      burger.classList.remove('active');
+      mobileMenu.classList.remove('open');
+    }
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Intersection observer for fade-in animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.feature-card, .step, .problem__card, .testimonial').forEach(el => {
+      el.classList.add('fade-in');
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>
