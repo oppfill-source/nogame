@@ -1,0 +1,5 @@
+# Supabase project configuration
+# Project ref: axlybeznzibovvqkllzq
+
+[functions.odds-proxy]
+verify_jwt = false   # Public read-only proxy — API key is kept server-side
