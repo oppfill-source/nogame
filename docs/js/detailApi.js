@@ -130,6 +130,19 @@ function teamMatch(a, b) {
 function espnId(gameId) { return /^espn-/.test(gameId ?? '') ? gameId.replace('espn-', '') : null; }
 function espnTeamId(teamId) { return /^espn-/.test(teamId ?? '') ? teamId.replace('espn-', '') : null; }
 
+// ESPN schedule endpoint returns score as { value:107, displayValue:"107" };
+// scoreboard endpoint returns it as a plain string "107". Handle both.
+function parseScore(score) {
+  if (score == null) return 0;
+  if (typeof score === 'number') return score;
+  if (typeof score === 'string') return Number(score) || 0;
+  if (typeof score === 'object') {
+    if (typeof score.value === 'number') return score.value;
+    if (score.displayValue != null) return Number(score.displayValue) || 0;
+  }
+  return 0;
+}
+
 // ── Real Odds ─────────────────────────────────────────────────────────────────
 
 /**
@@ -332,8 +345,8 @@ export async function fetchH2H(game) {
           const comp = ev.competitions[0];
           const home = comp.competitors.find(c => c.homeAway === 'home') ?? comp.competitors[0];
           const away = comp.competitors.find(c => c.homeAway === 'away') ?? comp.competitors[1];
-          const hs   = Number(home?.score ?? 0);
-          const as_  = Number(away?.score ?? 0);
+          const hs   = parseScore(home?.score);
+          const as_  = parseScore(away?.score);
           const ourIsHome = teamMatch(home?.team?.displayName ?? '', ourName);
           const ourScore  = ourIsHome ? hs : as_;
           const oppScore  = ourIsHome ? as_ : hs;
@@ -362,8 +375,8 @@ export async function fetchH2H(game) {
           const comp = ev.competitions[0];
           const home = comp.competitors.find(c => c.homeAway === 'home') ?? comp.competitors[0];
           const away = comp.competitors.find(c => c.homeAway === 'away') ?? comp.competitors[1];
-          const hs   = Number(home?.score ?? 0);
-          const as_  = Number(away?.score ?? 0);
+          const hs   = parseScore(home?.score);
+          const as_  = parseScore(away?.score);
           const ourTeamIsHome = teamMatch(home?.team?.displayName ?? '', game.homeTeam.name);
           return {
             date:       ev.date,
