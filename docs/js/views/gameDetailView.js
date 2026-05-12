@@ -13,7 +13,7 @@ import { state, setState } from '../state.js';
 import {
   fetchRealOdds, fetchPlayerProps, fetchGameStats,
   fetchH2H, fetchStandings, PROP_LABEL,
-} from '../detailApi.js';
+} from '../detailApi.js?v=4';
 
 const TABS = [
   { id: 'summary',   label: 'Summary'   },

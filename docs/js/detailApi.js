@@ -352,6 +352,8 @@ export async function fetchH2H(game) {
           const oppScore  = ourIsHome ? as_ : hs;
           const oppName   = ourIsHome ? (away?.team?.displayName ?? '?') : (home?.team?.displayName ?? '?');
           const oppAbbr   = ourIsHome ? (away?.team?.abbreviation ?? '?') : (home?.team?.abbreviation ?? '?');
+          // Use ESPN's authoritative winner flag; fall back to score comparison
+          const ourWinner = ourIsHome ? (home?.winner === true) : (away?.winner === true);
           return {
             date:     ev.date,
             opponent: oppName,
@@ -359,7 +361,7 @@ export async function fetchH2H(game) {
             isHome:   ourIsHome,
             ourScore,
             oppScore,
-            won:      ourScore > oppScore,
+            won:      ourWinner || ourScore > oppScore,
             isH2H:    teamMatch(oppName, theirName),
           };
         });
@@ -378,6 +380,8 @@ export async function fetchH2H(game) {
           const hs   = parseScore(home?.score);
           const as_  = parseScore(away?.score);
           const ourTeamIsHome = teamMatch(home?.team?.displayName ?? '', game.homeTeam.name);
+          const homeWon = home?.winner === true;
+          const awayWon = away?.winner === true;
           return {
             date:       ev.date,
             homeTeam:   home?.team?.displayName ?? '?',
@@ -386,7 +390,7 @@ export async function fetchH2H(game) {
             awayAbbr:   away?.team?.abbreviation ?? '?',
             homeScore:  hs,
             awayScore:  as_,
-            ourTeamWon: ourTeamIsHome ? hs > as_ : as_ > hs,
+            ourTeamWon: ourTeamIsHome ? (homeWon || hs > as_) : (awayWon || as_ > hs),
           };
         });
 

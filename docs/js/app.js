@@ -14,7 +14,7 @@ import {
   renderHomeView, renderStatusFilter,
   renderFeed, getFilteredGames
 } from './views/homeView.js';
-import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js';
+import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js?v=4';
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
