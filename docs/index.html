@@ -37,8 +37,7 @@
       </div>
 
       <div class="ln-nav__actions">
-        <a href="#" class="btn btn--sm btn--outline" data-auth-trigger="signin">Sign In</a>
-        <a href="#" class="btn btn--sm btn--primary" data-auth-trigger="signup">Sign Up Free</a>
+        <a href="#" class="btn btn--sm btn--primary" data-auth-trigger="signin">Sign In</a>
       </div>
 
       <button class="ln-nav__burger" id="lnBurger" aria-label="Menu" type="button">
@@ -50,8 +49,7 @@
       <a href="#" onclick="closeMobile()" data-auth-trigger="signin">Live Scores</a>
       <a href="#features" onclick="closeMobile()">Features</a>
       <a href="#how-it-works" onclick="closeMobile()">How It Works</a>
-      <a href="#" class="btn btn--outline" data-auth-trigger="signin" onclick="closeMobile()">Sign In</a>
-      <a href="#" class="btn btn--primary" data-auth-trigger="signup" onclick="closeMobile()">Sign Up Free</a>
+      <a href="#" class="btn btn--primary" data-auth-trigger="signin" onclick="closeMobile()">Sign In</a>
     </div>
   </nav>
 
@@ -87,8 +85,8 @@
             </svg>
             Open Live Scores
           </a>
-          <a href="#" class="btn btn--outline btn--lg" data-auth-trigger="signup">
-            Create Free Account →
+          <a href="#" class="btn btn--outline btn--lg" data-auth-trigger="signin">
+            Sign In →
           </a>
         </div>
 
@@ -575,12 +573,6 @@
 
       <button class="auth-modal__close" id="authModalClose" aria-label="Close modal">&#x2715;</button>
 
-      <!-- Tab switcher -->
-      <div class="auth-modal__tabs">
-        <button class="auth-modal__tab auth-modal__tab--active" data-auth-tab="signin" type="button">Sign In</button>
-        <button class="auth-modal__tab" data-auth-tab="signup" type="button">Sign Up</button>
-      </div>
-
       <!-- Logo + title -->
       <div class="auth-modal__logo">
         <span class="auth-modal__logo-mark">N</span>
@@ -626,59 +618,25 @@
       if (session) window.location.replace('app.html');
     });
 
-    // ── Modal state ───────────────────────────────────────────────────────────
-    let authMode = 'signin';
-
     const modal     = document.getElementById('authModal');
     const form      = document.getElementById('authForm');
     const msgEl     = document.getElementById('authMsg');
     const submitBtn = document.getElementById('authSubmitBtn');
-    const titleEl   = document.getElementById('authModalTitle');
-    const subEl     = document.getElementById('authModalSub');
 
-    function openModal(mode) {
-      authMode = mode || 'signin';
+    function openModal() {
       modal.hidden = false;
       document.body.style.overflow = 'hidden';
-      syncMode();
+      msgEl.textContent = '';
+      msgEl.className   = 'auth-modal__msg';
       setTimeout(() => document.getElementById('authEmail')?.focus(), 60);
     }
 
     function closeModal() {
       modal.hidden = true;
       document.body.style.overflow = '';
-      clearMsg();
-    }
-
-    function syncMode() {
-      const isSignIn = authMode === 'signin';
-      titleEl.textContent  = isSignIn ? 'Welcome back'     : 'Create your account';
-      subEl.textContent    = isSignIn ? 'Sign in to access live scores and odds.'
-                                      : 'Free account. No credit card required.';
-      submitBtn.textContent = isSignIn ? 'Sign In' : 'Sign Up';
-      document.querySelectorAll('[data-auth-tab]').forEach(t => {
-        t.classList.toggle('auth-modal__tab--active', t.dataset.authTab === authMode);
-      });
-    }
-
-    function showMsg(text, type) {
-      msgEl.textContent = text;
-      msgEl.className = 'auth-modal__msg auth-modal__msg--' + type;
-    }
-
-    function clearMsg() {
       msgEl.textContent = '';
       msgEl.className   = 'auth-modal__msg';
     }
-
-    // ── Tab switching ──────────────────────────────────────────────────────────
-    document.querySelectorAll('[data-auth-tab]').forEach(tab => {
-      tab.addEventListener('click', () => {
-        authMode = tab.dataset.authTab;
-        syncMode();
-        clearMsg();
-      });
-    });
 
     // ── Close handlers ─────────────────────────────────────────────────────────
     document.getElementById('authModalClose').addEventListener('click', closeModal);
@@ -692,33 +650,21 @@
       e.preventDefault();
       const email    = document.getElementById('authEmail').value.trim();
       const password = document.getElementById('authPassword').value;
-
       if (!email || !password) return;
 
       submitBtn.disabled    = true;
-      submitBtn.textContent = authMode === 'signin' ? 'Signing in…' : 'Creating account…';
-      clearMsg();
+      submitBtn.textContent = 'Signing in…';
+      msgEl.textContent = '';
+      msgEl.className   = 'auth-modal__msg';
 
-      if (authMode === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          showMsg(error.message, 'error');
-          submitBtn.disabled    = false;
-          submitBtn.textContent = 'Sign In';
-        } else {
-          window.location.replace('app.html');
-        }
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        msgEl.textContent = error.message;
+        msgEl.className   = 'auth-modal__msg auth-modal__msg--error';
         submitBtn.disabled    = false;
-        submitBtn.textContent = 'Sign Up';
-        if (error) {
-          showMsg(error.message, 'error');
-        } else {
-          showMsg('Account created! Check your email to confirm, then sign in.', 'success');
-          authMode = 'signin';
-          syncMode();
-        }
+        submitBtn.textContent = 'Sign In';
+      } else {
+        window.location.replace('app.html');
       }
     });
 
@@ -726,7 +672,7 @@
     document.querySelectorAll('[data-auth-trigger]').forEach(el => {
       el.addEventListener('click', e => {
         e.preventDefault();
-        openModal(el.dataset.authTrigger);
+        openModal();
       });
     });
   </script>
