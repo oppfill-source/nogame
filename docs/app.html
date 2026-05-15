@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NoGame — Live Scores & Odds Comparison</title>
+  <meta name="description" content="Live scores and best-odds comparison across DraftKings, FanDuel, BetMGM, Caesars, ESPN BET, and more US sportsbooks. NFL, NBA, MLB, NHL, NCAAF, NCAAB, soccer, tennis, MMA." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2322C55E'/%3E%3Ctext x='16' y='22' font-family='system-ui' font-weight='900' font-size='18' fill='%23000' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="css/scores.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/sidebar.css" />
+  <link rel="stylesheet" href="css/detail.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <!-- Auth gate: keeps body invisible until session is confirmed -->
+  <style id="auth-gate">body{visibility:hidden}</style>
+</head>
+<body class="page-scores">
+
+  <!-- ── STICKY HEADER ─────────────────────────────────────────────────────── -->
+  <header class="appbar">
+    <div class="appbar__inner" style="max-width:1520px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:16px;height:56px">
+
+      <!-- Hamburger (mobile) -->
+      <button class="appbar__burger" id="appbarBurger" aria-label="Toggle sidebar" type="button">
+        <span></span><span></span><span></span>
+      </button>
+
+      <!-- Logo -->
+      <a href="#" class="nav__logo" style="flex-shrink:0">
+        <span class="logo-mark">N</span>
+        <span>NoGame</span>
+      </a>
+
+      <!-- Search -->
+      <div class="appbar__search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="Search teams, leagues, games…" autocomplete="off" />
+      </div>
+
+      <!-- Controls -->
+      <div class="appbar__controls">
+        <!-- Live sync indicator -->
+        <div class="live-sync-indicator" id="liveSyncIndicator" title="Live scores syncing…" hidden>
+          <span class="live-sync-dot"></span>
+          <span style="font-size:.72rem">Live</span>
+        </div>
+
+        <!-- Odds format toggle -->
+        <div class="odds-format-pill" id="oddsFormatPill">
+          <button class="odds-format-btn odds-format-btn--active" data-format="american" type="button">AMR</button>
+          <button class="odds-format-btn" data-format="decimal" type="button">DEC</button>
+          <button class="odds-format-btn" data-format="fractional" type="button">FRAC</button>
+        </div>
+
+        <!-- Signed-in user -->
+        <span id="appbarUserEmail" style="font-size:.78rem;color:var(--text-sec);white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis"></span>
+
+        <!-- Sign Out -->
+        <button id="signOutBtn" class="btn btn--sm btn--outline" type="button" style="flex-shrink:0">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── STICKY SPORTS NAV ──────────────────────────────────────────────────── -->
+  <nav class="sports-nav" style="position:sticky;top:56px;z-index:40">
+    <div style="max-width:1520px;margin:0 auto;padding:0 16px">
+      <div id="sportsNav" class="sports-nav__row" role="tablist"></div>
+    </div>
+  </nav>
+
+  <!-- ── THREE-COLUMN BODY ─────────────────────────────────────────────────── -->
+  <div class="page-body">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar-left" id="sidebarLeft" aria-label="Navigation">
+      <div id="leftSidebarContent"></div>
+    </aside>
+
+    <!-- MAIN VIEW (router mounts here) -->
+    <main class="page-main" id="pageMain">
+      <!-- Home view or detail view rendered here by router -->
+    </main>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="sidebar-right" id="sidebarRight" aria-label="Live & trending">
+      <div id="rightSidebarContent"></div>
+    </aside>
+
+  </div>
+
+  <!-- Mobile sidebar overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+  <footer class="footer footer--scores">
+    <div class="footer__disclaimer">
+      <div style="max-width:1520px;margin:0 auto;padding:0 16px">
+        <p>
+          <strong>Odds disclaimer:</strong> Odds shown are for informational purposes only and may change at any time.
+          Sportsbook availability varies by state. Must be 21+ and physically located in an eligible state.
+          NoGame is an analytics tool only — we do not accept bets.
+          <strong>Please gamble responsibly.</strong> If gambling is affecting your life, call the
+          <strong>National Problem Gambling Helpline: 1-800-522-4700</strong> or visit
+          <a href="https://www.ncpgambling.org" target="_blank" rel="noopener">ncpgambling.org</a>.
+        </p>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <div style="max-width:1520px;margin:0 auto;padding:0 16px" class="footer__bottom-inner">
+        <p>© 2026 NoGame. All rights reserved.</p>
+        <div class="footer__links-inline">
+          <a href="index.html">About</a>
+          <a href="privacy.html">Privacy</a>
+          <a href="terms.html">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Error catcher: makes JS failures visible on mobile instead of silent -->
+  <script>
+    function _showErr(msg) {
+      var el = document.getElementById('pageMain');
+      if (!el) return;
+      el.innerHTML = '<div style="padding:24px;font-family:monospace;font-size:13px;color:#f87171;background:#1c1c1c;border-radius:8px;margin:16px;white-space:pre-wrap">'
+        + '<strong>JS Error (share with dev):</strong>\n' + msg + '</div>';
+    }
+    window.addEventListener('error', function(e) {
+      _showErr((e.message || e.type) + (e.filename ? '\nFile: ' + e.filename + ':' + e.lineno : ''));
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var r = e.reason;
+      var msg = r ? (r.message || String(r)) : 'Unknown rejection';
+      console.error('Unhandled promise rejection:', r);
+      _showErr('Promise rejection: ' + msg + (r && r.stack ? '\n' + r.stack.split('\n').slice(0,4).join('\n') : ''));
+    });
+  </script>
+  <script type="module" src="js/app.js?v=4"></script>
+</body>
+</html>

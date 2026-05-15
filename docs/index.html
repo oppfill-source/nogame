@@ -1,144 +1,802 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NoGame — Live Scores & Odds Comparison</title>
-  <meta name="description" content="Live scores and best-odds comparison across DraftKings, FanDuel, BetMGM, Caesars, ESPN BET, and more US sportsbooks. NFL, NBA, MLB, NHL, NCAAF, NCAAB, soccer, tennis, MMA." />
+  <title>NoGame — Live Scores & Best Odds Comparison</title>
+  <meta name="description" content="Compare live odds from DraftKings, FanDuel, BetMGM, Caesars, ESPN BET and more — all in one place. Best odds automatically highlighted. Free." />
+  <meta property="og:title" content="NoGame — Live Scores & Best Odds Comparison" />
+  <meta property="og:description" content="The fastest way to find the best line. Live scores, odds from 10+ sportsbooks, best odds highlighted automatically." />
+  <meta property="og:url" content="https://nogame.dev" />
+  <meta property="og:type" content="website" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2322C55E'/%3E%3Ctext x='16' y='22' font-family='system-ui' font-weight='900' font-size='18' fill='%23000' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="css/scores.css" />
-  <link rel="stylesheet" href="css/layout.css" />
-  <link rel="stylesheet" href="css/sidebar.css" />
-  <link rel="stylesheet" href="css/detail.css" />
+  <link rel="stylesheet" href="css/landing.css" />
+  <link rel="stylesheet" href="css/auth.css" />
 </head>
-<body class="page-scores">
+<body class="page-landing">
 
-  <!-- ── STICKY HEADER ─────────────────────────────────────────────────────── -->
-  <header class="appbar">
-    <div class="appbar__inner" style="max-width:1520px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:16px;height:56px">
-
-      <!-- Hamburger (mobile) -->
-      <button class="appbar__burger" id="appbarBurger" aria-label="Toggle sidebar" type="button">
-        <span></span><span></span><span></span>
-      </button>
-
-      <!-- Logo -->
-      <a href="#" class="nav__logo" style="flex-shrink:0">
+  <!-- ══════════════════════════════════════════════════════════════════════
+       NAV
+  ══════════════════════════════════════════════════════════════════════ -->
+  <nav class="ln-nav" id="lnNav">
+    <div class="ln-nav__inner">
+      <a href="index.html" class="ln-nav__logo">
         <span class="logo-mark">N</span>
         <span>NoGame</span>
       </a>
 
-      <!-- Search -->
-      <div class="appbar__search">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input id="searchInput" type="search" placeholder="Search teams, leagues, games…" autocomplete="off" />
+      <div class="ln-nav__links">
+        <a href="#" class="ln-nav__link" data-auth-trigger="signin">Live Scores</a>
+        <a href="#features" class="ln-nav__link">Features</a>
+        <a href="#how-it-works" class="ln-nav__link">How It Works</a>
+        <a href="#waitlist" class="ln-nav__link">Get the App</a>
       </div>
 
-      <!-- Controls -->
-      <div class="appbar__controls">
-        <!-- Live sync indicator -->
-        <div class="live-sync-indicator" id="liveSyncIndicator" title="Live scores syncing…" hidden>
-          <span class="live-sync-dot"></span>
-          <span style="font-size:.72rem">Live</span>
-        </div>
-
-        <!-- Odds format toggle -->
-        <div class="odds-format-pill" id="oddsFormatPill">
-          <button class="odds-format-btn odds-format-btn--active" data-format="american" type="button">AMR</button>
-          <button class="odds-format-btn" data-format="decimal" type="button">DEC</button>
-          <button class="odds-format-btn" data-format="fractional" type="button">FRAC</button>
-        </div>
-
-        <!-- Login -->
-        <a href="landing.html" class="appbar__link" style="font-size:.82rem;color:var(--text-sec);transition:color .12s;white-space:nowrap">Sign In</a>
-
-        <!-- Get App CTA -->
-        <a href="landing.html#cta" class="btn btn--sm btn--primary" style="flex-shrink:0">Get App</a>
+      <div class="ln-nav__actions">
+        <a href="#" class="btn btn--sm btn--outline" data-auth-trigger="signin">Sign In</a>
+        <a href="#" class="btn btn--sm btn--primary" data-auth-trigger="signup">Sign Up Free</a>
       </div>
+
+      <button class="ln-nav__burger" id="lnBurger" aria-label="Menu" type="button">
+        <span></span><span></span><span></span>
+      </button>
     </div>
-  </header>
 
-  <!-- ── STICKY SPORTS NAV ──────────────────────────────────────────────────── -->
-  <nav class="sports-nav" style="position:sticky;top:56px;z-index:40">
-    <div style="max-width:1520px;margin:0 auto;padding:0 16px">
-      <div id="sportsNav" class="sports-nav__row" role="tablist"></div>
+    <div class="ln-nav__mobile" id="lnMobileMenu">
+      <a href="#" onclick="closeMobile()" data-auth-trigger="signin">Live Scores</a>
+      <a href="#features" onclick="closeMobile()">Features</a>
+      <a href="#how-it-works" onclick="closeMobile()">How It Works</a>
+      <a href="#" class="btn btn--outline" data-auth-trigger="signin" onclick="closeMobile()">Sign In</a>
+      <a href="#" class="btn btn--primary" data-auth-trigger="signup" onclick="closeMobile()">Sign Up Free</a>
     </div>
   </nav>
 
-  <!-- ── THREE-COLUMN BODY ─────────────────────────────────────────────────── -->
-  <div class="page-body">
 
-    <!-- LEFT SIDEBAR -->
-    <aside class="sidebar-left" id="sidebarLeft" aria-label="Navigation">
-      <div id="leftSidebarContent"></div>
-    </aside>
+  <!-- ══════════════════════════════════════════════════════════════════════
+       HERO
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section class="ln-hero" id="home">
+    <div class="ln-hero__inner">
 
-    <!-- MAIN VIEW (router mounts here) -->
-    <main class="page-main" id="pageMain">
-      <!-- Home view or detail view rendered here by router -->
-    </main>
+      <!-- Copy -->
+      <div class="ln-hero__copy">
+        <span class="ln-hero__eyebrow">
+          <span class="ln-hero__eyebrow-dot"></span>
+          Live Scores · Live Odds
+        </span>
 
-    <!-- RIGHT SIDEBAR -->
-    <aside class="sidebar-right" id="sidebarRight" aria-label="Live & trending">
-      <div id="rightSidebarContent"></div>
-    </aside>
+        <h1 class="ln-hero__h1">
+          Find the best odds.<br />
+          <span class="accent">Every game.</span><br />
+          Every book.
+        </h1>
 
-  </div>
-
-  <!-- Mobile sidebar overlay -->
-  <div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
-
-  <!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
-  <footer class="footer footer--scores">
-    <div class="footer__disclaimer">
-      <div style="max-width:1520px;margin:0 auto;padding:0 16px">
-        <p>
-          <strong>Odds disclaimer:</strong> Odds shown are for informational purposes only and may change at any time.
-          Sportsbook availability varies by state. Must be 21+ and physically located in an eligible state.
-          NoGame is an analytics tool only — we do not accept bets.
-          <strong>Please gamble responsibly.</strong> If gambling is affecting your life, call the
-          <strong>National Problem Gambling Helpline: 1-800-522-4700</strong> or visit
-          <a href="https://www.ncpgambling.org" target="_blank" rel="noopener">ncpgambling.org</a>.
+        <p class="ln-hero__sub">
+          NoGame shows live scores and compares odds from DraftKings, FanDuel, BetMGM, Caesars, ESPN BET and more — side by side. The best available price is highlighted automatically, so you never leave money on the table.
         </p>
+
+        <div class="ln-hero__ctas">
+          <a href="#" class="btn btn--primary btn--lg" data-auth-trigger="signin">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Open Live Scores
+          </a>
+          <a href="#" class="btn btn--outline btn--lg" data-auth-trigger="signup">
+            Create Free Account →
+          </a>
+        </div>
+
+        <p class="ln-hero__disclaimer">Free · Sign up in seconds · No credit card required</p>
+      </div>
+
+      <!-- Browser mockup -->
+      <div class="ln-hero__preview">
+        <div class="browser-mock">
+          <div class="browser-mock__bar">
+            <div class="browser-mock__dots">
+              <div class="browser-mock__dot"></div>
+              <div class="browser-mock__dot"></div>
+              <div class="browser-mock__dot"></div>
+            </div>
+            <div class="browser-mock__url">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              nogame.dev
+            </div>
+          </div>
+          <div class="browser-mock__content">
+            <!-- Sport pills -->
+            <div class="mock-sport-row">
+              <div class="mock-sport-pill mock-sport-pill--active">⭐ All</div>
+              <div class="mock-sport-pill">🏈 NFL</div>
+              <div class="mock-sport-pill">🏀 NBA</div>
+              <div class="mock-sport-pill">⚾ MLB</div>
+              <div class="mock-sport-pill">🏒 NHL</div>
+            </div>
+            <!-- Date tabs -->
+            <div class="mock-date-row">
+              <div class="mock-date-pill">Yesterday</div>
+              <div class="mock-date-pill mock-date-pill--active">Today</div>
+              <div class="mock-date-pill">Tomorrow</div>
+              <div class="mock-date-pill">Weekend</div>
+            </div>
+            <!-- NBA league -->
+            <div class="mock-league">
+              🏀 NBA
+              <span class="mock-league__live">
+                <span class="mock-league__dot"></span>
+                2 live
+              </span>
+            </div>
+            <!-- Game 1 – live -->
+            <div class="mock-game mock-game--live">
+              <div class="mock-game__status">
+                <div class="mock-game__status-live">
+                  <span class="mock-game__live-dot"></span> Q3
+                </div>
+                <div class="mock-game__clock">5:22</div>
+              </div>
+              <div class="mock-game__teams">
+                <div class="mock-game__team">
+                  <span class="mock-game__abbr">BOS</span>
+                  <span class="mock-game__name">Boston Celtics</span>
+                  <span class="mock-game__score mock-game__score--lead">89</span>
+                </div>
+                <div class="mock-game__team">
+                  <span class="mock-game__abbr">MIA</span>
+                  <span class="mock-game__name">Miami Heat</span>
+                  <span class="mock-game__score">81</span>
+                </div>
+              </div>
+              <div class="mock-game__odds">
+                <div class="mock-game__odds-cell">
+                  <span class="mock-game__odds-label">BOS</span>
+                  <span class="mock-game__odds-val mock-game__odds-val--best">-165</span>
+                </div>
+                <div class="mock-game__odds-cell">
+                  <span class="mock-game__odds-label">MIA</span>
+                  <span class="mock-game__odds-val">+140</span>
+                </div>
+              </div>
+            </div>
+            <!-- Game 2 – scheduled -->
+            <div class="mock-game">
+              <div class="mock-game__status">
+                <div class="mock-game__status-time">7:30 PM</div>
+              </div>
+              <div class="mock-game__teams">
+                <div class="mock-game__team">
+                  <span class="mock-game__abbr">LAL</span>
+                  <span class="mock-game__name">LA Lakers</span>
+                  <span class="mock-game__score" style="color:var(--text-muted)">—</span>
+                </div>
+                <div class="mock-game__team">
+                  <span class="mock-game__abbr">GSW</span>
+                  <span class="mock-game__name">Golden State</span>
+                  <span class="mock-game__score" style="color:var(--text-muted)">—</span>
+                </div>
+              </div>
+              <div class="mock-game__odds">
+                <div class="mock-game__odds-cell">
+                  <span class="mock-game__odds-label">LAL</span>
+                  <span class="mock-game__odds-val">+125</span>
+                </div>
+                <div class="mock-game__odds-cell">
+                  <span class="mock-game__odds-label">GSW</span>
+                  <span class="mock-game__odds-val mock-game__odds-val--best">-145</span>
+                </div>
+              </div>
+            </div>
+            <!-- NFL league -->
+            <div class="mock-league" style="margin-top:0">
+              🏈 NFL
+            </div>
+            <!-- Game 3 -->
+            <div class="mock-game">
+              <div class="mock-game__status">
+                <div class="mock-game__status-time">Sun 4:25</div>
+              </div>
+              <div class="mock-game__teams">
+                <div class="mock-game__team">
+                  <span class="mock-game__abbr">PHI</span>
+                  <span class="mock-game__name">Philadelphia</span>
+                  <span class="mock-game__score" style="color:var(--text-muted)">—</span>
+                </div>
+                <div class="mock-game__team">
+                  <span class="mock-game__abbr">KC</span>
+                  <span class="mock-game__name">Kansas City</span>
+                  <span class="mock-game__score" style="color:var(--text-muted)">—</span>
+                </div>
+              </div>
+              <div class="mock-game__odds">
+                <div class="mock-game__odds-cell">
+                  <span class="mock-game__odds-label">PHI</span>
+                  <span class="mock-game__odds-val">+148</span>
+                </div>
+                <div class="mock-game__odds-cell">
+                  <span class="mock-game__odds-label">KC</span>
+                  <span class="mock-game__odds-val mock-game__odds-val--best">-165</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SPORTSBOOK STRIP
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section class="ln-books">
+    <div class="ln-books__inner">
+      <div class="ln-books__label">Odds compared from these sportsbooks</div>
+      <div class="ln-books__row">
+        <div class="ln-book-chip"><span class="ln-book-chip__dot" style="background:#53D337"></span>DraftKings</div>
+        <div class="ln-book-chip"><span class="ln-book-chip__dot" style="background:#1493FF"></span>FanDuel</div>
+        <div class="ln-book-chip"><span class="ln-book-chip__dot" style="background:#BFA15B"></span>BetMGM</div>
+        <div class="ln-book-chip"><span class="ln-book-chip__dot" style="background:#C9A961"></span>Caesars</div>
+        <div class="ln-book-chip"><span class="ln-book-chip__dot" style="background:#FF0033"></span>ESPN BET</div>
+        <div class="ln-book-chip"><span class="ln-book-chip__dot" style="background:#1B1B1B;border:1px solid var(--border)"></span>Fanatics</div>
+        <div class="ln-book-chip"><span class="ln-book-chip__dot" style="background:#FFCC00"></span>bet365</div>
+        <div class="ln-book-chip"><span class="ln-book-chip__dot" style="background:#1670D6"></span>BetRivers</div>
+        <div class="ln-book-chip"><span class="ln-book-chip__dot" style="background:#E31837"></span>Hard Rock</div>
+        <div class="ln-book-chip" style="opacity:.6;font-style:italic">+ more</div>
       </div>
     </div>
-    <div class="footer__bottom">
-      <div style="max-width:1520px;margin:0 auto;padding:0 16px" class="footer__bottom-inner">
-        <p>© 2026 NoGame. All rights reserved.</p>
-        <div class="footer__links-inline">
-          <a href="landing.html">About</a>
-          <a href="privacy.html">Privacy</a>
-          <a href="terms.html">Terms</a>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       FEATURES
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section class="ln-features" id="features">
+    <div class="ln-features__inner">
+      <div class="ln-section-tag">Why NoGame</div>
+      <h2 class="ln-section-h2">Everything in one place.<br />Nothing you don't need.</h2>
+      <p class="ln-section-sub">NoGame is built for sports bettors who take line shopping seriously. We pull the data so you don't have to open ten apps.</p>
+
+      <div class="ln-features__grid">
+
+        <div class="ln-feat fade-up">
+          <div class="ln-feat__icon">⚡</div>
+          <div class="ln-feat__title">Live scores, always up to date</div>
+          <div class="ln-feat__body">Real-time scores across NFL, NBA, MLB, NHL, college sports, soccer, tennis, UFC and more. Live games auto-update every 30 seconds.</div>
+          <ul class="ln-feat__list">
+            <li>10+ sports covered</li>
+            <li>Live clock and period display</li>
+            <li>Grouped by league, collapsible</li>
+            <li>Star any game to save it</li>
+          </ul>
         </div>
+
+        <div class="ln-feat fade-up">
+          <div class="ln-feat__icon">💰</div>
+          <div class="ln-feat__title">Best odds highlighted automatically</div>
+          <div class="ln-feat__body">Our algorithm compares every sportsbook's moneyline, spread, and total and marks the best available price with a green badge — no mental math required.</div>
+          <ul class="ln-feat__list">
+            <li>Correct American odds math (+160 beats +145)</li>
+            <li>Line-aware spread and total comparison</li>
+            <li>Implied probability shown per book</li>
+            <li>Ties handled — multiple books highlighted</li>
+          </ul>
+        </div>
+
+        <div class="ln-feat fade-up">
+          <div class="ln-feat__icon">📊</div>
+          <div class="ln-feat__title">Full game detail pages</div>
+          <div class="ln-feat__body">Click any game for a dedicated page: scoreboard, full odds comparison table, stats, lineups, head-to-head history, standings, and injuries.</div>
+          <ul class="ln-feat__list">
+            <li>Moneyline, spread, total markets</li>
+            <li>Per-book odds with last-updated time</li>
+            <li>American, decimal, or fractional display</li>
+            <li>Shareable URL for every game</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ODDS DEMO
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section class="ln-demo" id="demo">
+    <div class="ln-demo__inner">
+
+      <div class="ln-demo__copy fade-up">
+        <div class="ln-section-tag">Best Odds Engine</div>
+        <h2 class="ln-section-h2">Stop settling for whatever line is easiest to find.</h2>
+        <p style="font-size:.95rem;color:var(--text-sec);line-height:1.65;margin-bottom:20px">
+          The difference between +145 and +155 on the same bet is real money over time. NoGame's best-odds algorithm compares every book's price and marks the winner in green — instantly.
+        </p>
+        <ul class="ln-feat__list" style="margin:0">
+          <li>Positive odds: higher number is always better</li>
+          <li>Negative odds: closest to zero wins</li>
+          <li>Mixed: +100 beats -105, every time</li>
+          <li>Spreads and totals compared at the same line only</li>
+        </ul>
+        <div style="margin-top:28px">
+          <a href="#" class="btn btn--primary" data-auth-trigger="signin">See it live →</a>
+        </div>
+      </div>
+
+      <!-- Live odds table demo -->
+      <div class="fade-up">
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:10px">
+          Example · Eagles vs Chiefs · Moneyline
+        </div>
+        <div class="odds-demo-table">
+          <div class="odds-demo-table__header">
+            <div class="odds-demo-table__th">Sportsbook</div>
+            <div class="odds-demo-table__th">Philadelphia</div>
+            <div class="odds-demo-table__th">Kansas City</div>
+          </div>
+          <div class="odds-demo-table__row">
+            <div class="odds-demo-table__book">
+              <span class="odds-demo-table__book-dot" style="background:#53D337"></span>
+              DraftKings
+            </div>
+            <div class="odds-demo-table__cell">+145</div>
+            <div class="odds-demo-table__cell">-168</div>
+          </div>
+          <div class="odds-demo-table__row">
+            <div class="odds-demo-table__book">
+              <span class="odds-demo-table__book-dot" style="background:#1493FF"></span>
+              FanDuel
+            </div>
+            <div class="odds-demo-table__cell odds-demo-table__cell--best">
+              +155 <span class="odds-demo-table__best-badge">★ Best</span>
+            </div>
+            <div class="odds-demo-table__cell">-175</div>
+          </div>
+          <div class="odds-demo-table__row">
+            <div class="odds-demo-table__book">
+              <span class="odds-demo-table__book-dot" style="background:#BFA15B"></span>
+              BetMGM
+            </div>
+            <div class="odds-demo-table__cell">+142</div>
+            <div class="odds-demo-table__cell odds-demo-table__cell--best">
+              -160 <span class="odds-demo-table__best-badge">★ Best</span>
+            </div>
+          </div>
+          <div class="odds-demo-table__row">
+            <div class="odds-demo-table__book">
+              <span class="odds-demo-table__book-dot" style="background:#C9A961"></span>
+              Caesars
+            </div>
+            <div class="odds-demo-table__cell">+148</div>
+            <div class="odds-demo-table__cell">-170</div>
+          </div>
+          <div class="odds-demo-table__row">
+            <div class="odds-demo-table__book">
+              <span class="odds-demo-table__book-dot" style="background:#FF0033"></span>
+              ESPN BET
+            </div>
+            <div class="odds-demo-table__cell">+140</div>
+            <div class="odds-demo-table__cell">-165</div>
+          </div>
+        </div>
+        <div style="font-size:.7rem;color:var(--text-muted);margin-top:8px;line-height:1.5">
+          Odds for illustrative purposes only · Subject to change · Must be 21+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       HOW IT WORKS
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section class="ln-how" id="how-it-works">
+    <div class="ln-how__inner">
+      <div class="ln-section-tag">How It Works</div>
+      <h2 class="ln-section-h2">From game to best odds<br />in three steps.</h2>
+
+      <div class="ln-steps">
+
+        <div class="ln-step fade-up">
+          <div class="ln-step__num">01</div>
+          <div class="ln-step__body">
+            <div class="ln-step__title">Pick a sport and find your game</div>
+            <div class="ln-step__desc">Browse today's schedule filtered by sport. Live games show the current score and period. Upcoming games show the start time. Use the date selector to look ahead or back.</div>
+          </div>
+        </div>
+
+        <div class="ln-step fade-up">
+          <div class="ln-step__num">02</div>
+          <div class="ln-step__body">
+            <div class="ln-step__title">Click the game to see all odds</div>
+            <div class="ln-step__desc">The game detail page shows every sportsbook's moneyline, spread, and total in a single table. The best available price per outcome is highlighted in green with a ★ Best badge.</div>
+          </div>
+        </div>
+
+        <div class="ln-step fade-up">
+          <div class="ln-step__num">03</div>
+          <div class="ln-step__body">
+            <div class="ln-step__title">Click through to the sportsbook</div>
+            <div class="ln-step__desc">Tap the sportsbook name to open it directly. You already know which book has your number — no more opening five apps to check.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SPORTS COVERAGE
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section style="padding:80px 0;background:var(--bg)">
+    <div style="max-width:1160px;margin:0 auto;padding:0 24px;text-align:center">
+      <div class="ln-section-tag" style="justify-content:center;margin-bottom:14px">Sports Coverage</div>
+      <h2 class="ln-section-h2" style="margin-bottom:12px">All the sports that matter.</h2>
+      <p style="font-size:.95rem;color:var(--text-sec);margin-bottom:40px">
+        US leagues first, with international coverage for soccer, tennis, and combat sports.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">🏈 NFL</div>
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">🏀 NBA</div>
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">⚾ MLB</div>
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">🏒 NHL</div>
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">🏈 NCAAF</div>
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">🏀 NCAAB</div>
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">⚽ Soccer</div>
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">🎾 Tennis</div>
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">🥊 UFC / MMA</div>
+        <div style="background:var(--surface);border:1px solid var(--border-sub);border-radius:10px;padding:10px 18px;font-size:.88rem;font-weight:600;color:var(--text-sec)">⛳ Golf</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       WAITLIST / CTA
+  ══════════════════════════════════════════════════════════════════════ -->
+  <section class="ln-cta" id="waitlist">
+    <div class="ln-cta__inner">
+      <div class="ln-cta__icon">📲</div>
+      <h2 class="ln-cta__h2">The app is coming.<br />Get early access.</h2>
+      <p class="ln-cta__sub">
+        The web app is live right now — free, no account needed. Enter your email and we'll notify you the moment the iOS and Android apps launch.
+      </p>
+
+      <form class="ln-waitlist-form" id="waitlistForm" onsubmit="handleWaitlist(event)">
+        <input class="ln-waitlist-input" type="email" placeholder="your@email.com" required autocomplete="email" />
+        <button class="btn btn--primary" type="submit" style="height:46px;padding:0 20px;flex-shrink:0">
+          Notify Me
+        </button>
+      </form>
+      <div class="ln-waitlist-note" id="waitlistNote">No spam. Unsubscribe any time.</div>
+
+      <div class="ln-cta__divider">or use the web app now</div>
+
+      <a href="#" class="btn btn--primary btn--lg" data-auth-trigger="signin" style="display:inline-flex;gap:10px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Open Live Scores — Free
+      </a>
+
+      <div style="margin-top:12px;font-size:.75rem;color:var(--text-muted)">
+        Free to create an account · No credit card required
+      </div>
+
+      <div class="ln-cta__divider" style="margin-top:32px">app store coming soon</div>
+
+      <div class="store-btns" style="opacity:.45;pointer-events:none" title="Coming soon">
+        <div class="store-btn store-btn--apple">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.36.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.53 3.99zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+          <div class="store-btn__text">
+            <span class="store-btn__sub">Download on the</span>
+            <span class="store-btn__main">App Store</span>
+          </div>
+        </div>
+        <div class="store-btn store-btn--google">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.3.17.64.24.99.2l12.5-7.22-2.83-2.83-10.66 9.85zm16.7-10.26L16.76 11l3.12-1.8c.9-.52.9-1.38 0-1.9L4.17.24C3.82.07 3.47.04 3.17.2L14.1 11.13l5.78-2.49v4.86zM3.18.2c-.35.2-.57.6-.57 1.1v21.4c0 .5.22.9.57 1.1l.1.06L14.1 12.87v-.27L3.28.14l-.1.06zM16.76 13l3.12 1.8-3.12 1.8-2.66-1.8 2.66-1.8z"/></svg>
+          <div class="store-btn__text">
+            <span class="store-btn__sub">Get it on</span>
+            <span class="store-btn__main">Google Play</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════════════════════════════════════ -->
+  <footer class="ln-footer">
+    <div class="ln-footer__inner">
+      <div class="ln-footer__brand">
+        <a href="index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-weight:800;font-size:1rem">
+          <span style="width:28px;height:28px;background:var(--green);color:#000;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.9rem">N</span>
+          NoGame
+        </a>
+        <p class="ln-footer__brand-desc">Live scores and best-odds comparison across every major US sportsbook. Free. No account required.</p>
+      </div>
+      <div class="ln-footer__col">
+        <h4>Product</h4>
+        <a href="#" data-auth-trigger="signin">Live Scores</a>
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#waitlist">Get the App</a>
+      </div>
+      <div class="ln-footer__col">
+        <h4>Legal</h4>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Service</a>
+      </div>
+      <div class="ln-footer__col">
+        <h4>Contact</h4>
+        <a href="mailto:hello@nogame.dev">hello@nogame.dev</a>
+      </div>
+    </div>
+
+    <div class="ln-footer__disclaimer">
+      <p>
+        <strong>Responsible Gambling:</strong> NoGame is an odds comparison and data tool only — we do not accept bets or operate as a sportsbook.
+        Gambling involves real financial risk. Sportsbook availability varies by state. Must be 21+ and physically located in a state where sports betting is legal.
+        If gambling is affecting your life, call the <strong>National Problem Gambling Helpline: 1-800-522-4700</strong> or visit
+        <a href="https://www.ncpgambling.org" target="_blank" rel="noopener">ncpgambling.org</a>.
+        Odds shown are for informational purposes only and subject to change at any time. NoGame may earn a commission when users click through to sportsbooks.
+      </p>
+    </div>
+
+    <div class="ln-footer__bottom">
+      <p>© 2026 NoGame. All rights reserved.</p>
+      <div class="ln-footer__bottom-links">
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="mailto:hello@nogame.dev">Contact</a>
       </div>
     </div>
   </footer>
 
-  <!-- Error catcher: makes JS failures visible on mobile instead of silent -->
-  <script>
-    function _showErr(msg) {
-      var el = document.getElementById('pageMain');
-      if (!el) return;
-      el.innerHTML = '<div style="padding:24px;font-family:monospace;font-size:13px;color:#f87171;background:#1c1c1c;border-radius:8px;margin:16px;white-space:pre-wrap">'
-        + '<strong>JS Error (share with dev):</strong>\n' + msg + '</div>';
-    }
-    window.addEventListener('error', function(e) {
-      _showErr((e.message || e.type) + (e.filename ? '\nFile: ' + e.filename + ':' + e.lineno : ''));
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       AUTH MODAL
+  ══════════════════════════════════════════════════════════════════════ -->
+  <div id="authModal" class="auth-modal" hidden>
+    <div class="auth-modal__backdrop" id="authModalBackdrop"></div>
+    <div class="auth-modal__card">
+
+      <button class="auth-modal__close" id="authModalClose" aria-label="Close modal">&#x2715;</button>
+
+      <!-- Tab switcher -->
+      <div class="auth-modal__tabs">
+        <button class="auth-modal__tab auth-modal__tab--active" data-auth-tab="signin" type="button">Sign In</button>
+        <button class="auth-modal__tab" data-auth-tab="signup" type="button">Sign Up</button>
+      </div>
+
+      <!-- Logo + title -->
+      <div class="auth-modal__logo">
+        <span class="auth-modal__logo-mark">N</span>
+        NoGame
+      </div>
+      <div class="auth-modal__title" id="authModalTitle">Welcome back</div>
+      <div class="auth-modal__sub" id="authModalSub">Sign in to access live scores and odds.</div>
+
+      <!-- Message area (errors / success) -->
+      <div class="auth-modal__msg" id="authMsg"></div>
+
+      <!-- Form -->
+      <form id="authForm" novalidate>
+        <div class="auth-modal__field">
+          <label class="auth-modal__label" for="authEmail">Email</label>
+          <input class="auth-modal__input" type="email" id="authEmail"
+            placeholder="you@example.com" required autocomplete="email" />
+        </div>
+        <div class="auth-modal__field">
+          <label class="auth-modal__label" for="authPassword">Password</label>
+          <input class="auth-modal__input" type="password" id="authPassword"
+            placeholder="••••••••" required autocomplete="current-password" minlength="6" />
+        </div>
+        <button class="btn btn--primary auth-modal__submit" type="submit" id="authSubmitBtn">Sign In</button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       AUTH MODULE
+  ══════════════════════════════════════════════════════════════════════ -->
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const supabase = createClient(
+      'https://axlybeznzibovvqkllzq.supabase.co',
+      'sb_publishable_dN_eqVSKcdgwZCb1QEyHkA_vnmF7qS0'
+    );
+
+    // Redirect already-authenticated users straight to the dashboard
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.replace('app.html');
     });
-    window.addEventListener('unhandledrejection', function(e) {
-      var r = e.reason;
-      var msg = r ? (r.message || String(r)) : 'Unknown rejection';
-      console.error('Unhandled promise rejection:', r);
-      _showErr('Promise rejection: ' + msg + (r && r.stack ? '\n' + r.stack.split('\n').slice(0,4).join('\n') : ''));
+
+    // ── Modal state ───────────────────────────────────────────────────────────
+    let authMode = 'signin';
+
+    const modal     = document.getElementById('authModal');
+    const form      = document.getElementById('authForm');
+    const msgEl     = document.getElementById('authMsg');
+    const submitBtn = document.getElementById('authSubmitBtn');
+    const titleEl   = document.getElementById('authModalTitle');
+    const subEl     = document.getElementById('authModalSub');
+
+    function openModal(mode) {
+      authMode = mode || 'signin';
+      modal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      syncMode();
+      setTimeout(() => document.getElementById('authEmail')?.focus(), 60);
+    }
+
+    function closeModal() {
+      modal.hidden = true;
+      document.body.style.overflow = '';
+      clearMsg();
+    }
+
+    function syncMode() {
+      const isSignIn = authMode === 'signin';
+      titleEl.textContent  = isSignIn ? 'Welcome back'     : 'Create your account';
+      subEl.textContent    = isSignIn ? 'Sign in to access live scores and odds.'
+                                      : 'Free account. No credit card required.';
+      submitBtn.textContent = isSignIn ? 'Sign In' : 'Sign Up';
+      document.querySelectorAll('[data-auth-tab]').forEach(t => {
+        t.classList.toggle('auth-modal__tab--active', t.dataset.authTab === authMode);
+      });
+    }
+
+    function showMsg(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = 'auth-modal__msg auth-modal__msg--' + type;
+    }
+
+    function clearMsg() {
+      msgEl.textContent = '';
+      msgEl.className   = 'auth-modal__msg';
+    }
+
+    // ── Tab switching ──────────────────────────────────────────────────────────
+    document.querySelectorAll('[data-auth-tab]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        authMode = tab.dataset.authTab;
+        syncMode();
+        clearMsg();
+      });
+    });
+
+    // ── Close handlers ─────────────────────────────────────────────────────────
+    document.getElementById('authModalClose').addEventListener('click', closeModal);
+    document.getElementById('authModalBackdrop').addEventListener('click', closeModal);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !modal.hidden) closeModal();
+    });
+
+    // ── Form submit ────────────────────────────────────────────────────────────
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const email    = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+
+      if (!email || !password) return;
+
+      submitBtn.disabled    = true;
+      submitBtn.textContent = authMode === 'signin' ? 'Signing in…' : 'Creating account…';
+      clearMsg();
+
+      if (authMode === 'signin') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          showMsg(error.message, 'error');
+          submitBtn.disabled    = false;
+          submitBtn.textContent = 'Sign In';
+        } else {
+          window.location.replace('app.html');
+        }
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Sign Up';
+        if (error) {
+          showMsg(error.message, 'error');
+        } else {
+          showMsg('Account created! Check your email to confirm, then sign in.', 'success');
+          authMode = 'signin';
+          syncMode();
+        }
+      }
+    });
+
+    // ── Wire all data-auth-trigger elements ────────────────────────────────────
+    document.querySelectorAll('[data-auth-trigger]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        openModal(el.dataset.authTrigger);
+      });
     });
   </script>
-  <script type="module" src="js/app.js?v=4"></script>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SCRIPTS
+  ══════════════════════════════════════════════════════════════════════ -->
+  <script>
+    // Nav scroll effect
+    const lnNav = document.getElementById('lnNav');
+    window.addEventListener('scroll', () => {
+      lnNav.classList.toggle('ln-nav--scrolled', window.scrollY > 20);
+    }, { passive: true });
+
+    // Mobile menu
+    const burger = document.getElementById('lnBurger');
+    const mobileMenu = document.getElementById('lnMobileMenu');
+    burger.addEventListener('click', () => {
+      burger.classList.toggle('active');
+      mobileMenu.classList.toggle('open');
+    });
+    function closeMobile() {
+      burger.classList.remove('active');
+      mobileMenu.classList.remove('open');
+    }
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const id = a.getAttribute('href');
+        if (id === '#') return;
+        const target = document.querySelector(id);
+        if (target) {
+          e.preventDefault();
+          closeMobile();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Waitlist form
+    function handleWaitlist(e) {
+      e.preventDefault();
+      const input = e.target.querySelector('input[type="email"]');
+      const note = document.getElementById('waitlistNote');
+      const email = input.value.trim();
+      if (!email) return;
+
+      // In production: POST to your email capture endpoint here.
+      // e.g. fetch('/api/waitlist', { method:'POST', body: JSON.stringify({ email }) })
+
+      input.value = '';
+      input.disabled = true;
+      e.target.querySelector('button').disabled = true;
+      note.textContent = `✓ You're on the list. We'll email ${email} when the app launches.`;
+      note.style.color = 'var(--green)';
+    }
+
+    // Fade-up on scroll
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+
 </body>
 </html>

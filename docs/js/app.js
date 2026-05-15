@@ -1,6 +1,7 @@
 // ── Main app controller ──────────────────────────────────────────────────────
 // Boots the SPA: initializes router, mounts views, wires all events.
 
+import { getSession, signOut as authSignOut } from './auth.js';
 import { getSports, getGames, getLeague, getGameById, injectGames } from './mockData.js';
 import { getOddsForGame } from './mockData.js';
 import { fetchGamesForOffset } from './apiData.js';
@@ -18,7 +19,29 @@ import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js?
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Auth guard: redirect unauthenticated visitors to the landing page
+  const session = await getSession();
+  if (!session) {
+    window.location.replace('index.html');
+    return;
+  }
+
+  // Reveal page now that auth is confirmed
+  document.getElementById('auth-gate')?.remove();
+
+  // Show signed-in user identifier in the header
+  const userEl = document.getElementById('appbarUserEmail');
+  if (userEl && session.user?.email) {
+    userEl.textContent = session.user.email.split('@')[0];
+  }
+
+  // Sign out handler
+  document.getElementById('signOutBtn')?.addEventListener('click', async () => {
+    await authSignOut();
+    window.location.replace('index.html');
+  });
+
   renderSportsNav();
   bindSportsNav();
   mountLeftSidebar();
