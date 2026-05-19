@@ -1,7 +1,7 @@
 // ── Main app controller ──────────────────────────────────────────────────────
 // Boots the SPA: initializes router, mounts views, wires all events.
 
-import { getSession, signOut as authSignOut } from './auth.js';
+import { getSession, signOut as authSignOut, supabase } from './auth.js';
 import { getSports, getGames, getLeague, getGameById, injectGames } from './mockData.js';
 import { getOddsForGame } from './mockData.js';
 import { fetchGamesForOffset } from './apiData.js';
@@ -20,26 +20,89 @@ import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js?
 // ── Boot ───────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Auth guard: redirect unauthenticated visitors to the landing page
   const session = await getSession();
-  if (!session) {
-    window.location.replace('index.html');
-    return;
-  }
 
-  // Reveal page now that auth is confirmed
-  document.getElementById('auth-gate')?.remove();
+  // Update header based on auth state
+  const signInBtn  = document.getElementById('signInBtn');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const userEl     = document.getElementById('appbarUserEmail');
 
-  // Show signed-in user identifier in the header
-  const userEl = document.getElementById('appbarUserEmail');
-  if (userEl && session.user?.email) {
-    userEl.textContent = session.user.email.split('@')[0];
+  if (session?.user) {
+    if (signInBtn)  signInBtn.style.display  = 'none';
+    if (userEl)    { userEl.style.display = ''; userEl.textContent = session.user.email.split('@')[0]; }
+    if (signOutBtn) signOutBtn.style.display = '';
   }
 
   // Sign out handler
-  document.getElementById('signOutBtn')?.addEventListener('click', async () => {
+  signOutBtn?.addEventListener('click', async () => {
     await authSignOut();
     window.location.replace('index.html');
+  });
+
+  // Auth modal wiring
+  const modal     = document.getElementById('authModal');
+  const form      = document.getElementById('authForm');
+  const msgEl     = document.getElementById('authMsg');
+  const submitBtn = document.getElementById('authSubmitBtn');
+
+  function openAuthModal() {
+    if (!modal) return;
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    msgEl.textContent = '';
+    msgEl.className   = 'auth-modal__msg';
+    setTimeout(() => document.getElementById('authEmail')?.focus(), 60);
+  }
+
+  function closeAuthModal() {
+    if (!modal) return;
+    modal.hidden = true;
+    document.body.style.overflow = '';
+    msgEl.textContent = '';
+    msgEl.className   = 'auth-modal__msg';
+  }
+
+  signInBtn?.addEventListener('click', openAuthModal);
+  document.getElementById('authModalClose')?.addEventListener('click', closeAuthModal);
+  document.getElementById('authModalBackdrop')?.addEventListener('click', closeAuthModal);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modal && !modal.hidden) closeAuthModal();
+  });
+
+  form?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email    = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    if (!email || !password) return;
+
+    submitBtn.disabled    = true;
+    submitBtn.textContent = 'Signing in…';
+    msgEl.textContent = '';
+    msgEl.className   = 'auth-modal__msg';
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      const code = (error.code || '').toLowerCase();
+      const msg  = (error.message || '').toLowerCase();
+      let friendly = 'Sign in failed. Please try again.';
+      if (code === 'invalid_credentials' || msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
+        friendly = 'Incorrect email or password.';
+      } else if (msg.includes('email not confirmed')) {
+        friendly = 'Email not confirmed. Check your inbox for a confirmation link.';
+      } else if (msg.includes('too many') || error.status === 429) {
+        friendly = 'Too many attempts. Please wait a moment and try again.';
+      } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch')) {
+        friendly = 'Network error. Check your connection and try again.';
+      } else if (msg.includes('user not found') || msg.includes('no user found')) {
+        friendly = 'No account found with that email address.';
+      }
+      msgEl.textContent = friendly;
+      msgEl.className   = 'auth-modal__msg auth-modal__msg--error';
+      submitBtn.disabled    = false;
+      submitBtn.textContent = 'Sign In';
+    } else {
+      window.location.reload();
+    }
   });
 
   renderSportsNav();

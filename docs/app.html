@@ -15,8 +15,6 @@
   <link rel="stylesheet" href="css/sidebar.css" />
   <link rel="stylesheet" href="css/detail.css" />
   <link rel="stylesheet" href="css/auth.css" />
-  <!-- Auth gate: keeps body invisible until session is confirmed -->
-  <style id="auth-gate">body{visibility:hidden}</style>
 </head>
 <body class="page-scores">
 
@@ -59,11 +57,14 @@
           <button class="odds-format-btn" data-format="fractional" type="button">FRAC</button>
         </div>
 
-        <!-- Signed-in user -->
-        <span id="appbarUserEmail" style="font-size:.78rem;color:var(--text-sec);white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis"></span>
+        <!-- Guest: Sign In button (hidden when logged in) -->
+        <button id="signInBtn" class="btn btn--sm btn--primary" type="button" style="flex-shrink:0">Sign In</button>
 
-        <!-- Sign Out -->
-        <button id="signOutBtn" class="btn btn--sm btn--outline" type="button" style="flex-shrink:0">Sign Out</button>
+        <!-- Signed-in user (hidden until auth confirmed) -->
+        <span id="appbarUserEmail" style="font-size:.78rem;color:var(--text-sec);white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;display:none"></span>
+
+        <!-- Sign Out (hidden until auth confirmed) -->
+        <button id="signOutBtn" class="btn btn--sm btn--outline" type="button" style="flex-shrink:0;display:none">Sign Out</button>
       </div>
     </div>
   </header>
@@ -123,6 +124,34 @@
       </div>
     </div>
   </footer>
+
+  <!-- ── AUTH MODAL ─────────────────────────────────────────────────────────── -->
+  <div id="authModal" class="auth-modal" hidden>
+    <div class="auth-modal__backdrop" id="authModalBackdrop"></div>
+    <div class="auth-modal__card">
+      <button class="auth-modal__close" id="authModalClose" aria-label="Close modal">&#x2715;</button>
+      <div class="auth-modal__logo">
+        <span class="auth-modal__logo-mark">N</span>
+        NoGame
+      </div>
+      <div class="auth-modal__title" id="authModalTitle">Welcome back</div>
+      <div class="auth-modal__sub" id="authModalSub">Sign in to access your full experience.</div>
+      <div class="auth-modal__msg" id="authMsg"></div>
+      <form id="authForm" novalidate>
+        <div class="auth-modal__field">
+          <label class="auth-modal__label" for="authEmail">Email</label>
+          <input class="auth-modal__input" type="email" id="authEmail"
+            placeholder="you@example.com" required autocomplete="email" />
+        </div>
+        <div class="auth-modal__field">
+          <label class="auth-modal__label" for="authPassword">Password</label>
+          <input class="auth-modal__input" type="password" id="authPassword"
+            placeholder="••••••••" required autocomplete="current-password" minlength="6" />
+        </div>
+        <button class="btn btn--primary auth-modal__submit" type="submit" id="authSubmitBtn">Sign In</button>
+      </form>
+    </div>
+  </div>
 
   <!-- Error catcher: makes JS failures visible on mobile instead of silent -->
   <script>
