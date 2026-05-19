@@ -1,6 +1,7 @@
 // ── Main app controller ──────────────────────────────────────────────────────
 // Boots the SPA: initializes router, mounts views, wires all events.
-// Fixed: renderPickCard duplicate declaration (v2)
+// Fixed: renderPickCard duplicate declaration - renderCommunityPickCard at line 852
+// Build: 2026-05-19T00:00:00Z
 
 import { getSession, signOut as authSignOut } from './auth.js';
 import { getSports, getGames, getLeague, getGameById, injectGames } from './mockData.js';
