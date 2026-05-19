@@ -1,0 +1,367 @@
+/* ── Bet Tracking ──────────────────────────────────────────────────────── */
+
+.bet-tracking-container {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.bet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.bet-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text, #FAFAFA);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-add-bet {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+  color: #FFF;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-bet:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* ── Bet Stats Dashboard ──────────────────────────────────────────────────── */
+
+.bet-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--elevated, #27272A);
+  border: 1px solid var(--border, #3F3F46);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #71717A);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text, #FAFAFA);
+}
+
+.stat-value.positive {
+  color: var(--green, #22C55E);
+}
+
+.stat-value.negative {
+  color: #F87171;
+}
+
+/* ── Add Bet Modal ────────────────────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-content {
+  background: var(--elevated, #27272A);
+  border: 1px solid var(--border, #3F3F46);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text, #FAFAFA);
+  margin-bottom: 20px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-muted, #71717A);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.modal-close:hover {
+  color: var(--text, #FAFAFA);
+  background: var(--bg, #09090B);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-sec, #A1A1AA);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg, #09090B);
+  border: 1px solid var(--border, #3F3F46);
+  border-radius: 8px;
+  color: var(--text, #FAFAFA);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--green, #22C55E);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-primary {
+  padding: 12px 16px;
+  background: var(--green, #22C55E);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #16A34A;
+  transform: translateY(-2px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 12px 16px;
+  background: none;
+  border: 1px solid var(--border, #3F3F46);
+  color: var(--text-sec, #A1A1AA);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-sec, #A1A1AA);
+  color: var(--text, #FAFAFA);
+}
+
+/* ── Bet History ────────────────────────────────────────────────────────── */
+
+.bet-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 14px;
+  background: var(--bg, #09090B);
+  border: 1px solid var(--border, #3F3F46);
+  color: var(--text-sec, #A1A1AA);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-btn--active {
+  background: var(--green, #22C55E);
+  border-color: var(--green, #22C55E);
+  color: #000;
+}
+
+.filter-btn:hover {
+  border-color: var(--green, #22C55E);
+}
+
+.bet-list {
+  display: grid;
+  gap: 12px;
+}
+
+.bet-item {
+  background: var(--elevated, #27272A);
+  border: 1px solid var(--border, #3F3F46);
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.bet-item:hover {
+  border-color: var(--green, #22C55E);
+}
+
+.bet-info {
+  display: grid;
+  gap: 8px;
+}
+
+.bet-game {
+  font-weight: 700;
+  color: var(--text, #FAFAFA);
+}
+
+.bet-selection {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--green, #22C55E);
+}
+
+.bet-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.8rem;
+  color: var(--text-muted, #71717A);
+}
+
+.bet-stake {
+  font-weight: 600;
+}
+
+.bet-status-badge {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge--pending {
+  background: rgba(168, 85, 247, 0.1);
+  color: #D8B4FE;
+}
+
+.badge--won {
+  background: rgba(34, 197, 94, 0.1);
+  color: #86EFAC;
+}
+
+.badge--lost {
+  background: rgba(239, 68, 68, 0.1);
+  color: #FCA5A5;
+}
+
+.badge--push {
+  background: rgba(107, 114, 128, 0.1);
+  color: #D1D5DB;
+}
+
+.bet-amount {
+  text-align: right;
+}
+
+.bet-payout {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text, #FAFAFA);
+}
+
+.bet-result {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.result-btn {
+  padding: 6px 10px;
+  font-size: 0.7rem;
+  border: 1px solid var(--border, #3F3F46);
+  background: none;
+  color: var(--text-sec, #A1A1AA);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.result-btn:hover {
+  background: var(--bg, #09090B);
+  border-color: var(--green, #22C55E);
+  color: var(--green, #22C55E);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted, #71717A);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}

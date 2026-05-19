@@ -15,8 +15,12 @@
   <link rel="stylesheet" href="css/sidebar.css" />
   <link rel="stylesheet" href="css/detail.css" />
   <link rel="stylesheet" href="css/auth.css" />
-  <!-- Auth gate: keeps body invisible until session is confirmed -->
-  <style id="auth-gate">body{visibility:hidden}</style>
+  <link rel="stylesheet" href="css/ai-picks.css" />
+  <link rel="stylesheet" href="css/bet-tracking.css" />
+  <link rel="stylesheet" href="css/live-odds.css" />
+  <link rel="stylesheet" href="css/profiles.css" />
+  <link rel="stylesheet" href="css/community.css" />
+  <link rel="stylesheet" href="css/analytics.css" />
 </head>
 <body class="page-scores">
 
@@ -46,6 +50,41 @@
 
       <!-- Controls -->
       <div class="appbar__controls">
+        <!-- AI Picks button -->
+        <button id="aiPicksBtn" class="btn btn--sm btn--outline" type="button" title="AI-generated picks" style="flex-shrink:0">
+          ✨ AI Picks
+        </button>
+
+        <!-- My Bets button -->
+        <button id="myBetsBtn" class="btn btn--sm btn--outline" type="button" title="Bet tracker" style="flex-shrink:0">
+          📊 My Bets
+        </button>
+
+        <!-- Community button -->
+        <button id="communityBtn" class="btn btn--sm btn--outline" type="button" title="Community picks" style="flex-shrink:0">
+          💬 Community
+        </button>
+
+        <!-- Live Odds button -->
+        <button id="liveOddsBtn" class="btn btn--sm btn--outline" type="button" title="Live in-game odds" style="flex-shrink:0">
+          🔴 Live Odds
+        </button>
+
+        <!-- Profile button -->
+        <button id="profileBtn" class="btn btn--sm btn--outline" type="button" title="Your profile" style="flex-shrink:0">
+          👤 Profile
+        </button>
+
+        <!-- Leaderboard button -->
+        <button id="leaderboardBtn" class="btn btn--sm btn--outline" type="button" title="Top bettors" style="flex-shrink:0">
+          🏆 Leaderboard
+        </button>
+
+        <!-- Analytics button -->
+        <button id="analyticsBtn" class="btn btn--sm btn--outline" type="button" title="Performance analytics" style="flex-shrink:0">
+          📈 Analytics
+        </button>
+
         <!-- Live sync indicator -->
         <div class="live-sync-indicator" id="liveSyncIndicator" title="Live scores syncing…" hidden>
           <span class="live-sync-dot"></span>

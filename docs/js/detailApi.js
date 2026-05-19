@@ -43,6 +43,18 @@ const PROP_MARKETS = {
   nhl:  'player_points,player_shots_on_goal',
 };
 
+// Market types available per sport
+function getMarketsForSport(sportOrLeagueId) {
+  const base = 'h2h,spreads,totals';
+  const playerProps = {
+    nfl:  ',player_pass_tds,player_pass_yards,player_rush_yards,player_receptions,player_reception_yards',
+    nba:  ',player_points,player_rebounds,player_assists,player_threes',
+    mlb:  ',batter_home_runs,batter_hits,pitcher_strikeouts',
+    nhl:  ',player_points,player_shots_on_goal',
+  };
+  return base + (playerProps[sportOrLeagueId] || '');
+}
+
 // Odds API bookmaker key → our internal sportsbook ID
 const BOOK_ID = {
   draftkings:      'dk',
@@ -50,17 +62,20 @@ const BOOK_ID = {
   betmgm:          'mgm',
   caesars:         'czr',
   williamhill_us:  'czr',
-  espnbet:         'espnbet',
-  fanatics:        'fanatics',
-  bet365:          'bet365',
-  betrivers:       'betrivers',
-  hardrockbet:     'hardrock',
-  ballybet:        'ballybet',
-  pointsbetus:     'pointsbet',
+  espnbet:         'espn',
+  fanatics:        'fan',
+  bet365:          'b365',
+  betrivers:       'br',
+  hardrockbet:     'hr',
+  ballybet:        'bally',
+  pointsbetus:     'pb',
   bovada:          'bovada',
   superbook:       'superbook',
   wynnbet:         'wynnbet',
   betonlineag:     'betonline',
+  playnow:         'pn',
+  mybookieag:      'mybookie',
+  lowvig:          'lowvig',
 };
 
 export const PROP_LABEL = {
@@ -155,10 +170,11 @@ export async function fetchRealOdds(game) {
   if (!sportKey) return { odds: [], eventId: null };
 
   try {
+    const markets = getMarketsForSport(game.sportId || game.leagueId);
     const events = await cached(`odds:${sportKey}`, () =>
       proxyFetch(`sports/${sportKey}/odds`, {
         regions:    'us',
-        markets:    'h2h,spreads,totals',
+        markets:    markets,
         oddsFormat: 'american',
       })
     );
