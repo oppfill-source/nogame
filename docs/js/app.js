@@ -19,6 +19,7 @@ import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js?
 import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoji } from './aiPicks.js';
 import { addBet, getBets, settleBet, getBetStats, calculatePayout, calculateProfit, formatCurrency } from './betTracking.js';
 import { startLiveOddsSync, stopLiveOddsSync, getAllLiveGames, getMovementIcon, formatMovement, isSharpMovement } from './liveOdds.js';
+import { getCurrentUserProfile, getUserProfile, updateUserProfile, getUserStats, getLeaderboard, getAvatarInitials, uploadAvatar } from './userProfiles.js';
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindAiPicksBtn();
   bindMyBetsBtn();
   bindLiveOddsBtn();
+  bindProfileBtn();
+  bindLeaderboardBtn();
 
   // Router: mounts the correct view on every hash change
   initRouter(route => {
@@ -871,6 +874,289 @@ function bindLiveOddsBtn() {
   const btn = document.getElementById('liveOddsBtn');
   if (!btn) return;
   btn.addEventListener('click', renderLiveOdds);
+}
+
+// ── User Profile view ────────────────────────────────────────────────────
+
+async function renderUserProfile() {
+  const main = document.getElementById('pageMain');
+  if (!main) return;
+
+  main.innerHTML = `<div style="padding:32px;text-align:center">Loading profile...</div>`;
+
+  try {
+    const profile = await getCurrentUserProfile();
+    const stats = await getUserStats(profile.id);
+
+    const joinDate = new Date(profile.created_at).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const initials = getAvatarInitials(profile.username);
+
+    main.innerHTML = `
+      <div class="profile-container">
+        <div class="profile-header">
+          <div class="profile-avatar">
+            ${profile.avatar_url ? `<img src="${profile.avatar_url}" alt="${profile.username}">` : initials}
+          </div>
+          <div class="profile-info">
+            <div class="profile-username">${profile.username}</div>
+            <div class="profile-email">Member since ${joinDate}</div>
+            <div class="profile-joindate">Bankroll: $${profile.bankroll?.toFixed(2) || '0.00'}</div>
+          </div>
+          <div class="profile-actions">
+            <button id="editProfileBtn" class="btn-edit-profile" type="button">⚙️ Settings</button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Bets</div>
+            <div class="stat-value">${stats.totalBets}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-value ${stats.winRate >= 52.5 ? 'positive' : 'negative'}">${stats.winRate}%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">ROI</div>
+            <div class="stat-value ${stats.roi >= 0 ? 'positive' : 'negative'}">${stats.roi}%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Profit/Loss</div>
+            <div class="stat-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">${stats.totalProfit >= 0 ? '+' : ''}$${Math.abs(stats.totalProfit).toFixed(2)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Won</div>
+            <div class="stat-value">${stats.won}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Lost</div>
+            <div class="stat-value">${stats.lost}</div>
+          </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="settings-modal" hidden>
+          <div class="settings-content">
+            <div class="settings-header">
+              <span>Profile Settings</span>
+              <button class="settings-close" type="button">✕</button>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Avatar</div>
+              <div class="avatar-upload">
+                <div class="avatar-preview">
+                  ${profile.avatar_url ? `<img src="${profile.avatar_url}" alt="${profile.username}">` : getAvatarInitials(profile.username)}
+                </div>
+                <div class="upload-actions">
+                  <button id="uploadAvatarBtn" class="btn-upload-avatar" type="button">📤 Upload</button>
+                  <input type="file" id="avatarFile" class="file-input" accept="image/*">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Basic Info</div>
+              <div class="form-section">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-input" id="usernameInput" value="${profile.username}" disabled>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Betting Preferences</div>
+              <div class="form-section">
+                <label class="form-label">Kelly Fraction</label>
+                <select class="form-select" id="kellyFractionSelect">
+                  <option value="0.1" ${profile.kelly_fraction === 0.1 ? 'selected' : ''}>10% (Conservative)</option>
+                  <option value="0.25" ${profile.kelly_fraction === 0.25 ? 'selected' : ''}>25% (Recommended)</option>
+                  <option value="0.5" ${profile.kelly_fraction === 0.5 ? 'selected' : ''}>50% (Aggressive)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-cancel" id="closeSettingsBtn">Cancel</button>
+              <button type="button" class="btn-save" id="saveSettingsBtn">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Wire up settings modal
+    const modal = document.getElementById('settingsModal');
+    const editBtn = document.getElementById('editProfileBtn');
+    const closeBtn = document.querySelector('.settings-close');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const saveBtn = document.getElementById('saveSettingsBtn');
+    const uploadBtn = document.getElementById('uploadAvatarBtn');
+    const fileInput = document.getElementById('avatarFile');
+
+    editBtn.addEventListener('click', () => (modal.hidden = false));
+    closeBtn.addEventListener('click', () => (modal.hidden = true));
+    closeSettingsBtn.addEventListener('click', () => (modal.hidden = true));
+    modal.addEventListener('click', e => {
+      if (e.target === modal) modal.hidden = true;
+    });
+
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async e => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = '⏳ Uploading...';
+        await uploadAvatar(file);
+        location.reload();
+      } catch (err) {
+        alert('Error uploading avatar: ' + err.message);
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = '📤 Upload';
+      }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      try {
+        saveBtn.disabled = true;
+        const kellyFraction = parseFloat(document.getElementById('kellyFractionSelect').value);
+        await updateUserProfile({ kelly_fraction: kellyFraction });
+        alert('Settings saved!');
+        modal.hidden = true;
+      } catch (err) {
+        alert('Error saving settings: ' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+  } catch (err) {
+    main.innerHTML = `<div style="padding:32px;color:var(--text-muted)">Error loading profile: ${err.message}</div>`;
+  }
+}
+
+// ── Leaderboard view ────────────────────────────────────────────────────
+
+let currentLeaderboardTab = 'roi';
+
+async function renderLeaderboard() {
+  const main = document.getElementById('pageMain');
+  if (!main) return;
+
+  main.innerHTML = `
+    <div class="leaderboard-container">
+      <div class="leaderboard-header">
+        <div class="leaderboard-title">🏆 Leaderboard</div>
+      </div>
+
+      <div class="leaderboard-tabs">
+        <button class="tab-btn tab-btn--active" data-metric="roi" type="button">Best ROI</button>
+        <button class="tab-btn" data-metric="profit" type="button">Most Profit</button>
+        <button class="tab-btn" data-metric="winRate" type="button">Win Rate</button>
+      </div>
+
+      <div id="leaderboardContent">Loading leaderboard...</div>
+    </div>
+  `;
+
+  // Wire up tab buttons
+  main.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      currentLeaderboardTab = btn.dataset.metric;
+      main.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-btn--active'));
+      btn.classList.add('tab-btn--active');
+      await loadLeaderboardData(main);
+    });
+  });
+
+  await loadLeaderboardData(main);
+}
+
+async function loadLeaderboardData(mainEl) {
+  const container = mainEl.querySelector('#leaderboardContent');
+  if (!container) return;
+
+  try {
+    const users = await getLeaderboard(currentLeaderboardTab, 50);
+
+    if (users.length === 0) {
+      container.innerHTML = `
+        <div class="empty-leaderboard">
+          <div class="empty-icon">📊</div>
+          <div>No users with enough bets yet.</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="leaderboard-list">
+        ${users.map((user, idx) => renderLeaderboardItem(user, idx)).join('')}
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div style="padding:20px;color:var(--text-muted)">Error loading leaderboard: ${err.message}</div>`;
+  }
+}
+
+function renderLeaderboardItem(user, rank) {
+  const rankBadge = rank < 3 ? ['gold', 'silver', 'bronze'][rank] : null;
+  const initials = getAvatarInitials(user.username);
+
+  return `
+    <div class="leaderboard-item">
+      <div class="leaderboard-rank">
+        ${rankBadge ? `<div class="rank-badge ${rankBadge}">${rank + 1}</div>` : `<div style="font-size:1.2rem">${rank + 1}</div>`}
+      </div>
+      <div class="leaderboard-user">
+        <div class="leaderboard-avatar">
+          ${user.avatar_url ? `<img src="${user.avatar_url}" alt="${user.username}">` : initials}
+        </div>
+        <div class="leaderboard-username">${user.username}</div>
+      </div>
+
+      <div class="leaderboard-stats">
+        ${currentLeaderboardTab === 'roi' ? `
+          <div class="leaderboard-stat">
+            <div class="leaderboard-stat-label">ROI</div>
+            <div class="leaderboard-stat-value ${user.roi >= 0 ? 'positive' : 'negative'}">${user.roi}%</div>
+          </div>
+        ` : ''}
+        ${currentLeaderboardTab === 'profit' ? `
+          <div class="leaderboard-stat">
+            <div class="leaderboard-stat-label">Profit</div>
+            <div class="leaderboard-stat-value ${user.totalProfit >= 0 ? 'positive' : 'negative'}">${user.totalProfit >= 0 ? '+' : ''}$${Math.abs(user.totalProfit).toFixed(0)}</div>
+          </div>
+        ` : ''}
+        ${currentLeaderboardTab === 'winRate' ? `
+          <div class="leaderboard-stat">
+            <div class="leaderboard-stat-label">Win Rate</div>
+            <div class="leaderboard-stat-value ${user.winRate >= 52.5 ? 'positive' : 'negative'}">${user.winRate}%</div>
+          </div>
+        ` : ''}
+        <div class="leaderboard-stat">
+          <div class="leaderboard-stat-label">Bets</div>
+          <div class="leaderboard-stat-value">${user.totalBets}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function bindProfileBtn() {
+  const btn = document.getElementById('profileBtn');
+  if (!btn) return;
+  btn.addEventListener('click', renderUserProfile);
+}
+
+function bindLeaderboardBtn() {
+  const btn = document.getElementById('leaderboardBtn');
+  if (!btn) return;
+  btn.addEventListener('click', renderLeaderboard);
 }
 
 // ── Sports navigation ──────────────────────────────────────────────────────
