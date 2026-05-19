@@ -17,6 +17,7 @@ import {
 } from './views/homeView.js';
 import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js?v=4';
 import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoji } from './aiPicks.js';
+import { addBet, getBets, settleBet, getBetStats, calculatePayout, calculateProfit, formatCurrency } from './betTracking.js';
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindSearch();
   bindBurger();
   bindAiPicksBtn();
+  bindMyBetsBtn();
 
   // Router: mounts the correct view on every hash change
   initRouter(route => {
@@ -380,6 +382,315 @@ function bindAiPicksBtn() {
   const btn = document.getElementById('aiPicksBtn');
   if (!btn) return;
   btn.addEventListener('click', renderAiPicks);
+}
+
+// ── Bet Tracking view ──────────────────────────────────────────────────────
+
+let currentBetFilter = { status: null, sport: null };
+
+async function renderBetTracking() {
+  const main = document.getElementById('pageMain');
+  if (!main) return;
+
+  main.innerHTML = `
+    <div class="bet-tracking-container">
+      <div class="bet-header">
+        <div class="bet-title">📊 My Bets</div>
+        <button id="addBetBtn" class="btn-add-bet" type="button">+ Add Bet</button>
+      </div>
+
+      <div id="betStatsContainer">Loading stats...</div>
+      <div id="betFiltersContainer"></div>
+      <div id="betListContainer">Loading bets...</div>
+
+      <!-- Add Bet Modal -->
+      <div id="addBetModal" class="modal-overlay" hidden>
+        <div class="modal-content">
+          <button class="modal-close" type="button">✕</button>
+          <div class="modal-header">Add New Bet</div>
+
+          <form id="addBetForm">
+            <div class="form-group">
+              <label class="form-label">Game / Match</label>
+              <input class="form-input" id="gameDesc" placeholder="e.g., KC vs Buffalo" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Sport</label>
+                <select class="form-select" id="sportSelect" required>
+                  <option value="">Select sport</option>
+                  <option value="nfl">NFL</option>
+                  <option value="nba">NBA</option>
+                  <option value="mlb">MLB</option>
+                  <option value="nhl">NHL</option>
+                  <option value="ncaaf">NCAAF</option>
+                  <option value="ncaab">NCAAB</option>
+                  <option value="soccer">Soccer</option>
+                  <option value="tennis">Tennis</option>
+                  <option value="mma">MMA</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Bet Type</label>
+                <select class="form-select" id="betTypeSelect" required>
+                  <option value="moneyline">Moneyline</option>
+                  <option value="spread">Spread</option>
+                  <option value="total">Total</option>
+                  <option value="prop">Prop</option>
+                  <option value="parlay">Parlay</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Selection</label>
+              <input class="form-input" id="selectionInput" placeholder="e.g., KC -3 or Over 45.5" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Bookmaker</label>
+                <select class="form-select" id="bookmakerSelect" required>
+                  <option value="">Select book</option>
+                  <option value="draftkings">DraftKings</option>
+                  <option value="fanduel">FanDuel</option>
+                  <option value="betmgm">BetMGM</option>
+                  <option value="caesars">Caesars</option>
+                  <option value="bet365">bet365</option>
+                  <option value="betrivers">BetRivers</option>
+                  <option value="playnow">PlayNow</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Odds</label>
+                <input class="form-input" id="oddsInput" type="number" placeholder="-110" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Stake ($)</label>
+              <input class="form-input" id="stakeInput" type="number" placeholder="50" min="0.01" step="0.01" required>
+            </div>
+
+            <div class="form-group" style="background:var(--bg);padding:12px;border-radius:8px;border:1px solid var(--border)">
+              <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px">POTENTIAL PAYOUT</div>
+              <div id="potentialPayoutDisplay" style="font-size:1.3rem;font-weight:700;color:var(--green)">$0.00</div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" id="cancelBetBtn">Cancel</button>
+              <button type="submit" class="btn-primary">Add Bet</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Load stats and bets
+  await loadAndRenderBetStats();
+  await loadAndRenderBets();
+
+  // Wire up modal
+  const modal = document.getElementById('addBetModal');
+  const addBtn = document.getElementById('addBetBtn');
+  const cancelBtn = document.getElementById('cancelBetBtn');
+  const closeBtn = document.querySelector('.modal-close');
+
+  addBtn.addEventListener('click', () => modal.hidden = false);
+  cancelBtn.addEventListener('click', () => modal.hidden = true);
+  closeBtn.addEventListener('click', () => modal.hidden = true);
+
+  // Wire up form
+  const form = document.getElementById('addBetForm');
+  const oddsInput = document.getElementById('oddsInput');
+  const stakeInput = document.getElementById('stakeInput');
+  const payoutDisplay = document.getElementById('potentialPayoutDisplay');
+
+  const updatePayout = () => {
+    const stake = parseFloat(stakeInput.value) || 0;
+    const odds = parseInt(oddsInput.value) || 0;
+    const payout = stake > 0 && odds ? calculatePayout(stake, odds) : 0;
+    payoutDisplay.textContent = formatCurrency(payout);
+  };
+
+  oddsInput.addEventListener('input', updatePayout);
+  stakeInput.addEventListener('input', updatePayout);
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+
+    try {
+      await addBet({
+        gameId: 'manual',
+        gameDescription: document.getElementById('gameDesc').value,
+        sport: document.getElementById('sportSelect').value,
+        betType: document.getElementById('betTypeSelect').value,
+        selection: document.getElementById('selectionInput').value,
+        bookmakerKey: document.getElementById('bookmakerSelect').value,
+        odds: document.getElementById('oddsInput').value,
+        stake: document.getElementById('stakeInput').value,
+      });
+
+      modal.hidden = true;
+      form.reset();
+      payoutDisplay.textContent = '$0.00';
+      await loadAndRenderBetStats();
+      await loadAndRenderBets();
+    } catch (err) {
+      alert('Error adding bet: ' + err.message);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  modal.addEventListener('click', e => {
+    if (e.target === modal) modal.hidden = true;
+  });
+}
+
+async function loadAndRenderBetStats() {
+  const container = document.getElementById('betStatsContainer');
+  if (!container) return;
+
+  try {
+    const stats = await getBetStats();
+
+    container.innerHTML = `
+      <div class="bet-stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Bets</div>
+          <div class="stat-value">${stats.totalBets}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pending</div>
+          <div class="stat-value">${stats.pending}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-value ${stats.winRate >= 52.5 ? 'positive' : 'negative'}">${stats.winRate}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">ROI</div>
+          <div class="stat-value ${stats.roi >= 0 ? 'positive' : 'negative'}">${stats.roi}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Staked</div>
+          <div class="stat-value">${formatCurrency(stats.totalStaked)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Winnings</div>
+          <div class="stat-value ${stats.totalWinnings >= 0 ? 'positive' : 'negative'}">${formatCurrency(stats.totalWinnings)}</div>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div style="padding:20px;color:var(--text-muted)">Error loading stats: ${err.message}</div>`;
+  }
+}
+
+async function loadAndRenderBets() {
+  const container = document.getElementById('betListContainer');
+  if (!container) return;
+
+  try {
+    const bets = await getBets(currentBetFilter);
+
+    // Render filters
+    const filterContainer = document.getElementById('betFiltersContainer');
+    filterContainer.innerHTML = `
+      <div class="bet-filters">
+        <button class="filter-btn ${!currentBetFilter.status ? 'filter-btn--active' : ''}" data-filter-status="">All</button>
+        <button class="filter-btn ${currentBetFilter.status === 'pending' ? 'filter-btn--active' : ''}" data-filter-status="pending">Pending</button>
+        <button class="filter-btn ${currentBetFilter.status === 'won' ? 'filter-btn--active' : ''}" data-filter-status="won">Won</button>
+        <button class="filter-btn ${currentBetFilter.status === 'lost' ? 'filter-btn--active' : ''}" data-filter-status="lost">Lost</button>
+        <button class="filter-btn ${currentBetFilter.status === 'push' ? 'filter-btn--active' : ''}" data-filter-status="push">Push</button>
+      </div>
+    `;
+
+    filterContainer.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        currentBetFilter.status = btn.dataset.filterStatus || null;
+        await loadAndRenderBets();
+      });
+    });
+
+    if (bets.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🎯</div>
+          <div>No bets yet. Add your first bet to start tracking!</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="bet-list">
+        ${bets.map(bet => renderBetItem(bet)).join('')}
+      </div>
+    `;
+
+    // Wire up settle buttons
+    container.querySelectorAll('.result-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const betId = btn.dataset.betId;
+        const result = btn.dataset.result;
+        try {
+          await settleBet(betId, result);
+          await loadAndRenderBetStats();
+          await loadAndRenderBets();
+        } catch (err) {
+          alert('Error settling bet: ' + err.message);
+        }
+      });
+    });
+  } catch (err) {
+    container.innerHTML = `<div style="padding:20px;color:var(--text-muted)">Error loading bets: ${err.message}</div>`;
+  }
+}
+
+function renderBetItem(bet) {
+  const profit = calculateProfit(bet.stake, bet.odds);
+  const isPending = bet.status === 'pending';
+
+  return `
+    <div class="bet-item">
+      <div class="bet-info">
+        <div class="bet-game">${bet.game_description}</div>
+        <div class="bet-selection">${bet.selection}</div>
+        <div class="bet-meta">
+          <span>${bet.sport.toUpperCase()}</span>
+          <span>${bet.bet_type}</span>
+          <span class="bet-stake">${formatCurrency(bet.stake)}</span>
+          <span>@ ${bet.odds > 0 ? '+' : ''}${bet.odds}</span>
+        </div>
+      </div>
+
+      <div style="text-align:right">
+        <div class="bet-status-badge badge--${bet.status}">${bet.status.toUpperCase()}</div>
+        <div class="bet-payout" style="margin-top:8px">${formatCurrency(bet.potential_payout)}</div>
+        ${!isPending ? `<div style="font-size:0.85rem;color:${profit >= 0 ? 'var(--green)' : '#F87171'};margin-top:4px">${profit >= 0 ? '+' : ''}${formatCurrency(profit)}</div>` : ''}
+      </div>
+
+      ${isPending ? `
+        <div class="bet-result">
+          <button class="result-btn" data-bet-id="${bet.id}" data-result="won" type="button">✅ Won</button>
+          <button class="result-btn" data-bet-id="${bet.id}" data-result="lost" type="button">❌ Lost</button>
+          <button class="result-btn" data-bet-id="${bet.id}" data-result="push" type="button">➖ Push</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function bindMyBetsBtn() {
+  const btn = document.getElementById('myBetsBtn');
+  if (!btn) return;
+  btn.addEventListener('click', renderBetTracking);
 }
 
 // ── Sports navigation ──────────────────────────────────────────────────────
