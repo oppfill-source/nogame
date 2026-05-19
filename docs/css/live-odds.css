@@ -1,0 +1,282 @@
+/* ── Live In-Game Odds ────────────────────────────────────────────────── */
+
+.live-odds-container {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.live-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.live-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text, #FAFAFA);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #EF4444;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.live-pulse {
+  width: 8px;
+  height: 8px;
+  background: #EF4444;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.live-games-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.live-game-card {
+  background: var(--elevated, #27272A);
+  border: 2px solid var(--border, #3F3F46);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.live-game-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #EF4444, transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { left: -100%; }
+  50% { left: 100%; }
+}
+
+.live-game-card:hover {
+  border-color: #EF4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+.game-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border, #3F3F46);
+}
+
+.game-info {
+  display: grid;
+  gap: 6px;
+}
+
+.game-matchup {
+  font-weight: 700;
+  color: var(--text, #FAFAFA);
+  font-size: 1.05rem;
+}
+
+.game-time {
+  font-size: 0.8rem;
+  color: var(--text-muted, #71717A);
+}
+
+.game-score {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--green, #22C55E);
+}
+
+.game-quarter {
+  font-size: 0.75rem;
+  color: #EF4444;
+  font-weight: 700;
+}
+
+.odds-section {
+  margin-bottom: 12px;
+}
+
+.odds-section-title {
+  font-size: 0.7rem;
+  color: var(--text-muted, #71717A);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.odds-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.odds-item {
+  background: var(--bg, #09090B);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #3F3F46);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.odds-item:hover {
+  border-color: var(--green, #22C55E);
+}
+
+.odds-name {
+  font-size: 0.85rem;
+  color: var(--text-sec, #A1A1AA);
+  font-weight: 600;
+}
+
+.odds-value-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.odds-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text, #FAFAFA);
+  min-width: 40px;
+  text-align: right;
+}
+
+.movement-indicator {
+  font-size: 1.2rem;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.movement-indicator.sharp {
+  opacity: 1;
+  font-size: 1.4rem;
+}
+
+.movement-badge {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.movement-badge.up {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86EFAC;
+}
+
+.movement-badge.down {
+  background: rgba(239, 68, 68, 0.15);
+  color: #FCA5A5;
+}
+
+.last-updated {
+  font-size: 0.7rem;
+  color: var(--text-muted, #71717A);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, #3F3F46);
+}
+
+.live-action {
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  background: var(--green, #22C55E);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.live-action:hover {
+  background: #16A34A;
+  transform: translateY(-1px);
+}
+
+.live-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted, #71717A);
+}
+
+.live-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.live-empty-text {
+  font-size: 0.95rem;
+}
+
+.odds-comparison {
+  background: var(--bg, #09090B);
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.comparison-header {
+  font-size: 0.7rem;
+  color: var(--text-muted, #71717A);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.best-book {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid var(--border, #3F3F46);
+  padding-top: 6px;
+}
+
+.best-book-name {
+  font-size: 0.8rem;
+  color: var(--text, #FAFAFA);
+  font-weight: 600;
+}
+
+.best-book-odds {
+  font-size: 0.9rem;
+  color: var(--green, #22C55E);
+  font-weight: 700;
+}

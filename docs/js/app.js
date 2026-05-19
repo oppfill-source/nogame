@@ -18,6 +18,7 @@ import {
 import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js?v=4';
 import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoji } from './aiPicks.js';
 import { addBet, getBets, settleBet, getBetStats, calculatePayout, calculateProfit, formatCurrency } from './betTracking.js';
+import { startLiveOddsSync, stopLiveOddsSync, getAllLiveGames, getMovementIcon, formatMovement, isSharpMovement } from './liveOdds.js';
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindBurger();
   bindAiPicksBtn();
   bindMyBetsBtn();
+  bindLiveOddsBtn();
 
   // Router: mounts the correct view on every hash change
   initRouter(route => {
@@ -691,6 +693,184 @@ function bindMyBetsBtn() {
   const btn = document.getElementById('myBetsBtn');
   if (!btn) return;
   btn.addEventListener('click', renderBetTracking);
+}
+
+// ── Live Odds view ────────────────────────────────────────────────────────
+
+async function renderLiveOdds() {
+  const main = document.getElementById('pageMain');
+  if (!main) return;
+
+  main.innerHTML = `
+    <div class="live-odds-container">
+      <div class="live-header">
+        <div class="live-title">
+          <span>🔴 Live In-Game Odds</span>
+          <div class="live-indicator">
+            <span class="live-pulse"></span>
+            LIVE
+          </div>
+        </div>
+      </div>
+      <div id="liveGamesContainer">Loading live games...</div>
+    </div>
+  `;
+
+  // Start syncing live odds
+  stopLiveOddsSync();
+  startLiveOddsSync(() => {
+    updateLiveGamesDisplay();
+  });
+
+  // Initial render
+  await updateLiveGamesDisplay();
+
+  // Stop syncing when leaving this view
+  const cleanup = () => stopLiveOddsSync();
+  window.addEventListener('hashchange', cleanup);
+}
+
+async function updateLiveGamesDisplay() {
+  const container = document.getElementById('liveGamesContainer');
+  if (!container) return;
+
+  const liveGames = getAllLiveGames();
+
+  if (liveGames.length === 0) {
+    container.innerHTML = `
+      <div class="live-empty">
+        <div class="live-empty-icon">⏸️</div>
+        <div class="live-empty-text">
+          No live games right now.<br>
+          Check back when games are in progress!
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="live-games-grid">
+      ${liveGames.map(game => renderLiveGameCard(game)).join('')}
+    </div>
+  `;
+
+  // Wire up action buttons
+  container.querySelectorAll('.live-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const gameId = btn.dataset.gameId;
+      navigate(`game/${gameId}`);
+    });
+  });
+}
+
+function renderLiveGameCard(game) {
+  const homeScore = game.score?.home || '-';
+  const awayScore = game.score?.away || '-';
+  const quarterText = getQuarterText(game);
+
+  const homeOdds = game.odds?.homeOdds || '-';
+  const awayOdds = game.odds?.awayOdds || '-';
+  const overOdds = game.odds?.overOdds || '-';
+  const underOdds = game.odds?.underOdds || '-';
+
+  const homeMovement = game.movement?.homeOdds;
+  const awayMovement = game.movement?.awayOdds;
+  const overMovement = game.movement?.over;
+  const underMovement = game.movement?.under;
+
+  return `
+    <div class="live-game-card">
+      <div class="game-header">
+        <div class="game-info">
+          <div class="game-matchup">${game.awayTeam.name} @ ${game.homeTeam.name}</div>
+          <div class="game-time">${new Date(game.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="game-score">${awayScore} - ${homeScore}</div>
+          <div class="game-quarter">${quarterText}</div>
+        </div>
+      </div>
+
+      <div class="odds-section">
+        <div class="odds-section-title">Moneyline</div>
+        <div class="odds-row">
+          <div class="odds-item">
+            <div class="odds-name">${game.awayTeam.name}</div>
+            <div class="odds-value-group">
+              <span class="odds-value">${homeOdds > 0 ? '+' : ''}${homeOdds}</span>
+              ${awayMovement ? `
+                <span class="movement-indicator ${isSharpMovement(awayMovement) ? 'sharp' : ''}">${getMovementIcon(awayMovement)}</span>
+                <span class="movement-badge ${awayMovement.direction}">${formatMovement(awayMovement)}</span>
+              ` : ''}
+            </div>
+          </div>
+          <div class="odds-item">
+            <div class="odds-name">${game.homeTeam.name}</div>
+            <div class="odds-value-group">
+              <span class="odds-value">${awayOdds > 0 ? '+' : ''}${awayOdds}</span>
+              ${homeMovement ? `
+                <span class="movement-indicator ${isSharpMovement(homeMovement) ? 'sharp' : ''}">${getMovementIcon(homeMovement)}</span>
+                <span class="movement-badge ${homeMovement.direction}">${formatMovement(homeMovement)}</span>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="odds-section">
+        <div class="odds-section-title">Totals (Over/Under)</div>
+        <div class="odds-row">
+          <div class="odds-item">
+            <div class="odds-name">Over 45.5</div>
+            <div class="odds-value-group">
+              <span class="odds-value">${overOdds > 0 ? '+' : ''}${overOdds}</span>
+              ${overMovement ? `
+                <span class="movement-indicator ${isSharpMovement(overMovement) ? 'sharp' : ''}">${getMovementIcon(overMovement)}</span>
+                <span class="movement-badge ${overMovement.direction}">${formatMovement(overMovement)}</span>
+              ` : ''}
+            </div>
+          </div>
+          <div class="odds-item">
+            <div class="odds-name">Under 45.5</div>
+            <div class="odds-value-group">
+              <span class="odds-value">${underOdds > 0 ? '+' : ''}${underOdds}</span>
+              ${underMovement ? `
+                <span class="movement-indicator ${isSharpMovement(underMovement) ? 'sharp' : ''}">${getMovementIcon(underMovement)}</span>
+                <span class="movement-badge ${underMovement.direction}">${formatMovement(underMovement)}</span>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="last-updated">
+        Last updated: ${new Date(game.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+      </div>
+
+      <button class="live-action" data-game-id="${game.id}" type="button">
+        Place Bet → ${game.odds?.homeOdds || '-'}
+      </button>
+    </div>
+  `;
+}
+
+function getQuarterText(game) {
+  if (game.status === 'halftime') return 'HALFTIME';
+  if (game.status === 'live') {
+    const elapsed = Math.floor((Date.now() - new Date(game.startTime).getTime()) / 60000);
+    if (elapsed < 12) return 'Q1';
+    if (elapsed < 24) return 'Q2';
+    if (elapsed < 36) return 'Q3';
+    return 'Q4';
+  }
+  return game.status.toUpperCase();
+}
+
+function bindLiveOddsBtn() {
+  const btn = document.getElementById('liveOddsBtn');
+  if (!btn) return;
+  btn.addEventListener('click', renderLiveOdds);
 }
 
 // ── Sports navigation ──────────────────────────────────────────────────────
