@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/sidebar.css" />
   <link rel="stylesheet" href="css/detail.css" />
   <link rel="stylesheet" href="css/auth.css" />
+  <link rel="stylesheet" href="css/ai-picks.css" />
 </head>
 <body class="page-scores">
 
@@ -44,6 +45,11 @@
 
       <!-- Controls -->
       <div class="appbar__controls">
+        <!-- AI Picks button -->
+        <button id="aiPicksBtn" class="btn btn--sm btn--outline" type="button" title="AI-generated picks" style="flex-shrink:0">
+          ✨ AI Picks
+        </button>
+
         <!-- Live sync indicator -->
         <div class="live-sync-indicator" id="liveSyncIndicator" title="Live scores syncing…" hidden>
           <span class="live-sync-dot"></span>

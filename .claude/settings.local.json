@@ -76,7 +76,8 @@
       "Bash(curl -s https://nogame.dev)",
       "Bash(curl -s https://nogame.dev/css/auth.css)",
       "Bash(curl -s -I https://nogame.dev)",
-      "Bash(curl -s -I https://nogame.dev/css/auth.css)"
+      "Bash(curl -s -I https://nogame.dev/css/auth.css)",
+      "Bash(node -c js/app.js)"
     ]
   }
 }

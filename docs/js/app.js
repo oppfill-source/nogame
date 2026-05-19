@@ -16,6 +16,7 @@ import {
   renderFeed, getFilteredGames
 } from './views/homeView.js';
 import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js?v=4';
+import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoji } from './aiPicks.js';
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindOddsFormat();
   bindSearch();
   bindBurger();
+  bindAiPicksBtn();
 
   // Router: mounts the correct view on every hash change
   initRouter(route => {
@@ -222,6 +224,162 @@ function mountTeamPlaceholder(main, teamId) {
         <div style="font-size:.82rem;color:var(--text-muted)">Full team schedules, stats, and odds will appear here.</div>
       </div>
     </div>`;
+}
+
+// ── AI Picks view ──────────────────────────────────────────────────────────
+
+let aiPicksLoading = false;
+
+async function renderAiPicks() {
+  const main = document.getElementById('pageMain');
+  if (!main) return;
+
+  main.innerHTML = `
+    <div class="ai-picks-container">
+      <div class="ai-picks-header">
+        <div class="ai-picks-title">
+          <span>✨ AI Picks</span>
+          <span style="font-size:0.8rem;color:var(--text-muted)">by Engie</span>
+        </div>
+        <div class="ai-picks-refresh">
+          <button id="refreshAiPicksBtn" class="btn-refresh-ai" type="button" ${aiPicksLoading ? 'disabled' : ''}>
+            ${aiPicksLoading ? '<span class="refresh-spinner"></span>' : '⟳'} Refresh
+          </button>
+        </div>
+      </div>
+      <div id="aiPicksContent">Loading picks...</div>
+    </div>
+  `;
+
+  const contentEl = document.getElementById('aiPicksContent');
+  const refreshBtn = document.getElementById('refreshAiPicksBtn');
+
+  refreshBtn.addEventListener('click', async () => {
+    if (aiPicksLoading) return;
+    aiPicksLoading = true;
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = '<span class="refresh-spinner"></span> Generating...';
+
+    try {
+      await refreshAiPicks();
+      await loadAndRenderPicks(contentEl);
+    } catch (err) {
+      contentEl.innerHTML = `<div class="rate-limit-msg">${err.message}</div>`;
+    } finally {
+      aiPicksLoading = false;
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = '⟳ Refresh';
+    }
+  });
+
+  await loadAndRenderPicks(contentEl);
+}
+
+async function loadAndRenderPicks(container) {
+  try {
+    const picks = await getAiPicks();
+
+    if (picks.length === 0) {
+      container.innerHTML = `
+        <div class="picks-empty">
+          <div class="picks-empty-icon">🎯</div>
+          <div class="picks-empty-text">
+            No picks available right now.<br>
+            Click Refresh to generate new AI picks.
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="ai-picks-list">
+        ${picks.map(pick => renderPickCard(pick)).join('')}
+      </div>
+    `;
+
+    // Wire up pick actions
+    container.querySelectorAll('.pick-action-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const action = e.currentTarget.dataset.action;
+        const pickId = e.currentTarget.dataset.pickId;
+        console.log('Pick action:', action, pickId);
+        // TODO: Implement rate pick as win/loss
+      });
+    });
+  } catch (err) {
+    container.innerHTML = `<div class="rate-limit-msg">Error loading picks: ${err.message}</div>`;
+  }
+}
+
+function renderPickCard(pick) {
+  const bestBook = pick.odds_data?.[0];
+  const kellyStake = calculateKellyStake(pick.confidence_pct, pick.recommended_odds, 0.25);
+  const emoji = getOddEmoji(pick.value_rating);
+
+  return `
+    <div class="ai-pick-card">
+      <div class="pick-header">
+        <div>
+          <div class="pick-game">${pick.away_team} @ ${pick.home_team}</div>
+          <div class="pick-league">${pick.sport}</div>
+        </div>
+        <div class="pick-rating">
+          <div class="rating-emoji">${emoji}</div>
+          <div class="rating-number">${pick.value_rating}/10</div>
+        </div>
+      </div>
+
+      <div class="pick-selection">
+        <div class="selection-bet">${pick.selection}</div>
+        <div class="selection-type">${pick.bet_type === 'total' ? 'Over/Under' : pick.bet_type.charAt(0).toUpperCase() + pick.bet_type.slice(1)}</div>
+      </div>
+
+      <div class="pick-odds">
+        ${pick.odds_data?.slice(0, 4).map(book => `
+          <div class="odds-item">
+            <div class="odds-book">${book.title}</div>
+            <div class="odds-value">${formatOdds(book.odds)}</div>
+          </div>
+        `).join('') || '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">No odds available</div>'}
+      </div>
+
+      <div class="pick-stats">
+        <div class="stat">
+          <div class="stat-label">Confidence</div>
+          <div class="stat-value">${pick.confidence_pct}%</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Kelly Stake</div>
+          <div class="stat-value">${(kellyStake * 100).toFixed(1)}%</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Recommended Odds</div>
+          <div class="stat-value">${formatOdds(pick.recommended_odds)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Best Available</div>
+          <div class="stat-value">${bestBook ? formatOdds(bestBook.odds) : 'N/A'}</div>
+        </div>
+      </div>
+
+      <div class="pick-reasoning">${pick.reasoning}</div>
+
+      <div class="pick-actions">
+        <button class="btn-small pick-action-btn" data-action="win" data-pick-id="${pick.id}" type="button">✅ Won</button>
+        <button class="btn-small pick-action-btn" data-action="loss" data-pick-id="${pick.id}" type="button">❌ Lost</button>
+        <button class="btn-small pick-action-btn" data-action="push" data-pick-id="${pick.id}" type="button">➖ Push</button>
+      </div>
+
+      <div class="pick-time">Updated ${new Date(pick.created_at || pick.expires_at).toLocaleDateString()}</div>
+    </div>
+  `;
+}
+
+function bindAiPicksBtn() {
+  const btn = document.getElementById('aiPicksBtn');
+  if (!btn) return;
+  btn.addEventListener('click', renderAiPicks);
 }
 
 // ── Sports navigation ──────────────────────────────────────────────────────
