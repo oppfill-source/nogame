@@ -27,6 +27,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const signOutBtn = document.getElementById('signOutBtn');
   const userEl     = document.getElementById('appbarUserEmail');
 
+  // Ensure modal is hidden on load
+  const modal = document.getElementById('authModal');
+  if (modal) modal.hidden = true;
+
   if (session?.user) {
     if (signInBtn)  signInBtn.style.display  = 'none';
     if (userEl)    { userEl.style.display = ''; userEl.textContent = session.user.email.split('@')[0]; }
@@ -45,26 +49,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   const msgEl     = document.getElementById('authMsg');
   const submitBtn = document.getElementById('authSubmitBtn');
 
+  console.log('Auth modal setup:', { modal: !!modal, form: !!form, signInBtn: !!signInBtn });
+
   function openAuthModal() {
     if (!modal) return;
+    console.log('Opening auth modal');
     modal.hidden = false;
     document.body.style.overflow = 'hidden';
-    msgEl.textContent = '';
-    msgEl.className   = 'auth-modal__msg';
+    if (msgEl) { msgEl.textContent = ''; msgEl.className = 'auth-modal__msg'; }
     setTimeout(() => document.getElementById('authEmail')?.focus(), 60);
   }
 
   function closeAuthModal() {
     if (!modal) return;
+    console.log('Closing auth modal');
     modal.hidden = true;
     document.body.style.overflow = '';
-    msgEl.textContent = '';
-    msgEl.className   = 'auth-modal__msg';
+    if (msgEl) { msgEl.textContent = ''; msgEl.className = 'auth-modal__msg'; }
   }
 
-  signInBtn?.addEventListener('click', openAuthModal);
-  document.getElementById('authModalClose')?.addEventListener('click', closeAuthModal);
-  document.getElementById('authModalBackdrop')?.addEventListener('click', closeAuthModal);
+  if (signInBtn) signInBtn.addEventListener('click', openAuthModal);
+  const closeBtn = document.getElementById('authModalClose');
+  const backdrop = document.getElementById('authModalBackdrop');
+  console.log('Close elements found:', { closeBtn: !!closeBtn, backdrop: !!backdrop });
+  if (closeBtn) closeBtn.addEventListener('click', e => { e.stopPropagation(); closeAuthModal(); });
+  if (backdrop) backdrop.addEventListener('click', closeAuthModal);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && modal && !modal.hidden) closeAuthModal();
   });
