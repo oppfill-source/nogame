@@ -9,8 +9,12 @@
   padding: 16px;
 }
 
-.auth-modal[hidden] {
+.auth-modal[hidden],
+.auth-modal[hidden] * {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .auth-modal__backdrop {
