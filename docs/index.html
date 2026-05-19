@@ -30,7 +30,7 @@
       </a>
 
       <div class="ln-nav__links">
-        <a href="app.html" class="ln-nav__link">Live Scores</a>
+        <a href="#" class="ln-nav__link" data-auth-trigger="signin" onclick="return false">Live Scores</a>
         <a href="#features" class="ln-nav__link">Features</a>
         <a href="#how-it-works" class="ln-nav__link">How It Works</a>
         <a href="#waitlist" class="ln-nav__link">Get the App</a>
@@ -46,10 +46,10 @@
     </div>
 
     <div class="ln-nav__mobile" id="lnMobileMenu">
-      <a href="app.html" onclick="closeMobile()">Live Scores</a>
+      <a href="#" data-auth-trigger="signin" onclick="closeMobile(); return false">Live Scores</a>
       <a href="#features" onclick="closeMobile()">Features</a>
       <a href="#how-it-works" onclick="closeMobile()">How It Works</a>
-      <a href="#" class="btn btn--primary" data-auth-trigger="signin" onclick="closeMobile()">Sign In</a>
+      <a href="#" class="btn btn--primary" data-auth-trigger="signin" onclick="closeMobile(); return false">Sign In</a>
     </div>
   </nav>
 
@@ -78,7 +78,7 @@
         </p>
 
         <div class="ln-hero__ctas">
-          <a href="app.html" class="btn btn--primary btn--lg">
+          <a href="#" class="btn btn--primary btn--lg" data-auth-trigger="signin" onclick="return false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
