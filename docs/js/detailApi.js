@@ -43,6 +43,18 @@ const PROP_MARKETS = {
   nhl:  'player_points,player_shots_on_goal',
 };
 
+// Market types available per sport
+function getMarketsForSport(sportOrLeagueId) {
+  const base = 'h2h,spreads,totals';
+  const playerProps = {
+    nfl:  ',player_pass_tds,player_pass_yards,player_rush_yards,player_receptions,player_reception_yards',
+    nba:  ',player_points,player_rebounds,player_assists,player_threes',
+    mlb:  ',batter_home_runs,batter_hits,pitcher_strikeouts',
+    nhl:  ',player_points,player_shots_on_goal',
+  };
+  return base + (playerProps[sportOrLeagueId] || '');
+}
+
 // Odds API bookmaker key → our internal sportsbook ID
 const BOOK_ID = {
   draftkings:      'dk',
@@ -156,10 +168,11 @@ export async function fetchRealOdds(game) {
   if (!sportKey) return { odds: [], eventId: null };
 
   try {
+    const markets = getMarketsForSport(game.sportId || game.leagueId);
     const events = await cached(`odds:${sportKey}`, () =>
       proxyFetch(`sports/${sportKey}/odds`, {
         regions:    'us',
-        markets:    'h2h,spreads,totals',
+        markets:    markets,
         oddsFormat: 'american',
       })
     );
