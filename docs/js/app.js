@@ -20,6 +20,7 @@ import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoj
 import { addBet, getBets, settleBet, getBetStats, calculatePayout, calculateProfit, formatCurrency } from './betTracking.js';
 import { startLiveOddsSync, stopLiveOddsSync, getAllLiveGames, getMovementIcon, formatMovement, isSharpMovement } from './liveOdds.js';
 import { getCurrentUserProfile, getUserProfile, updateUserProfile, getUserStats, getLeaderboard, getAvatarInitials, uploadAvatar } from './userProfiles.js';
+import { getPicks, addPick, likePick, unlikePick, hasUserLikedPick, addComment, getComments, followUser, unfollowUser, isFollowing } from './communityPicks.js';
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindBurger();
   bindAiPicksBtn();
   bindMyBetsBtn();
+  bindCommunityBtn();
   bindLiveOddsBtn();
   bindProfileBtn();
   bindLeaderboardBtn();
@@ -696,6 +698,334 @@ function bindMyBetsBtn() {
   const btn = document.getElementById('myBetsBtn');
   if (!btn) return;
   btn.addEventListener('click', renderBetTracking);
+}
+
+// ── Community view ────────────────────────────────────────────────────────
+
+let communityFilter = 'all'; // 'all' or 'following'
+
+async function renderCommunityFeed() {
+  const main = document.getElementById('pageMain');
+  if (!main) return;
+
+  main.innerHTML = `
+    <div class="community-container">
+      <div class="community-header">
+        <div class="community-title">
+          <span>💬 Community Picks</span>
+        </div>
+      </div>
+      <div class="community-tabs">
+        <button class="tab-btn tab-btn--active" data-filter="all" type="button">All Picks</button>
+        <button class="tab-btn" data-filter="following" type="button">Following</button>
+      </div>
+      <div id="communityFeed">Loading picks...</div>
+      <button class="add-pick-fab" id="addPickFabBtn" title="Post a pick" type="button">+</button>
+    </div>
+  `;
+
+  const feedEl = document.getElementById('communityFeed');
+  document.getElementById('addPickFabBtn')?.addEventListener('click', renderAddPickSheet);
+
+  // Tab filtering
+  main.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      communityFilter = e.currentTarget.dataset.filter;
+      main.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-btn--active'));
+      e.currentTarget.classList.add('tab-btn--active');
+      await loadAndRenderCommunityPicks(feedEl);
+    });
+  });
+
+  await loadAndRenderCommunityPicks(feedEl);
+}
+
+async function loadAndRenderCommunityPicks(container) {
+  try {
+    const picks = await getPicks({
+      followingOnly: communityFilter === 'following'
+    });
+
+    if (picks.length === 0) {
+      container.innerHTML = `
+        <div class="empty-picks">
+          <div class="empty-picks-icon">📭</div>
+          <div class="empty-picks-text">
+            ${communityFilter === 'following'
+              ? 'Follow users to see their picks here.'
+              : 'No picks shared yet. Be the first!'}
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `<div class="picks-feed">${picks.map(pick => renderPickCard(pick)).join('')}</div>`;
+
+    // Wire up interactions
+    container.querySelectorAll('.like-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const pickId = btn.dataset.pickId;
+        const liked = btn.classList.contains('liked');
+
+        try {
+          if (liked) {
+            await unlikePick(pickId);
+            btn.classList.remove('liked');
+          } else {
+            await likePick(pickId);
+            btn.classList.add('liked');
+          }
+          // Refresh pick to update like count
+          await loadAndRenderCommunityPicks(container);
+        } catch (err) {
+          console.error('Like action failed:', err);
+        }
+      });
+    });
+
+    container.querySelectorAll('.comments-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const card = btn.closest('.pick-card');
+        const section = card.querySelector('.comments-section');
+        if (section.hidden) {
+          section.hidden = false;
+          loadAndRenderComments(card.dataset.pickId, section);
+        } else {
+          section.hidden = true;
+        }
+      });
+    });
+
+    container.querySelectorAll('.pick-follow-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const userId = btn.dataset.userId;
+        const isFollowing = btn.classList.contains('following');
+
+        try {
+          if (isFollowing) {
+            await unfollowUser(userId);
+            btn.classList.remove('following');
+            btn.textContent = 'Follow';
+          } else {
+            await followUser(userId);
+            btn.classList.add('following');
+            btn.textContent = 'Following';
+          }
+        } catch (err) {
+          console.error('Follow action failed:', err);
+        }
+      });
+    });
+  } catch (err) {
+    container.innerHTML = `<div style="color:var(--text-muted);text-align:center;padding:20px">Error loading picks: ${err.message}</div>`;
+  }
+}
+
+async function loadAndRenderComments(pickId, commentsEl) {
+  try {
+    const comments = await getComments(pickId);
+    const commentsList = commentsEl.querySelector('.comments-list') || commentsEl;
+
+    if (comments.length === 0) {
+      commentsList.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">No comments yet</div>';
+    } else {
+      commentsList.innerHTML = comments.map(comment => `
+        <div class="comment-item">
+          <div class="comment-author">${comment.author?.username || 'Unknown'}</div>
+          <div class="comment-text">${comment.text}</div>
+          <div class="comment-time">${new Date(comment.created_at).toLocaleDateString()}</div>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Failed to load comments:', err);
+  }
+}
+
+function renderPickCard(pick) {
+  const author = pick.author || {};
+
+  return `
+    <div class="pick-card" data-pick-id="${pick.id}">
+      <div class="pick-card-header">
+        <div class="pick-user-info">
+          <div class="pick-avatar">${author.username?.[0]?.toUpperCase() || '?'}</div>
+          <div class="pick-user-details">
+            <div class="pick-username">${author.username || 'Anonymous'}</div>
+            <div class="pick-timestamp">${new Date(pick.created_at).toLocaleDateString()}</div>
+          </div>
+        </div>
+        <button class="pick-follow-btn ${author.id ? '' : 'hidden'}" data-user-id="${author.id}" type="button">Follow</button>
+      </div>
+
+      <div class="pick-card-body">
+        <div class="pick-game-info">
+          <div class="pick-matchup">${pick.away_team} @ ${pick.home_team}</div>
+          <div class="pick-sport">${pick.sport}</div>
+        </div>
+
+        <div class="pick-selection-box">
+          <div class="pick-selection-label">${pick.bet_type === 'total' ? 'Over/Under' : 'Pick'}</div>
+          <div class="pick-selection-text">${pick.selection}</div>
+        </div>
+
+        <div class="pick-odds-stake">
+          <div class="pick-stat">
+            <div class="pick-stat-label">Odds</div>
+            <div class="pick-stat-value">${pick.odds >= 0 ? '+' : ''}${pick.odds}</div>
+          </div>
+          <div class="pick-stat">
+            <div class="pick-stat-label">Stake</div>
+            <div class="pick-stat-value">$${pick.stake || 0}</div>
+          </div>
+        </div>
+
+        ${pick.reasoning ? `<div class="pick-reasoning">${pick.reasoning}</div>` : ''}
+      </div>
+
+      <div class="pick-card-footer">
+        <div class="pick-actions">
+          <button class="like-btn" data-pick-id="${pick.id}" type="button">❤️ ${pick.likes_count || 0}</button>
+          <button class="comments-btn" type="button">💬 ${pick.comments_count || 0}</button>
+        </div>
+      </div>
+
+      <div class="comments-section" hidden data-pick-id="${pick.id}">
+        <div style="padding:0 16px">
+          <div class="comments-header">Comments</div>
+          <div class="comments-list"></div>
+          <div class="add-comment-form">
+            <input class="comment-input" type="text" placeholder="Add a comment…" />
+            <button class="comment-submit-btn" type="button">Post</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function renderAddPickSheet() {
+  const modal = document.createElement('div');
+  modal.className = 'add-pick-modal';
+  modal.innerHTML = `
+    <div class="add-pick-content">
+      <div class="add-pick-header">
+        <span>Share Your Pick</span>
+        <button class="add-pick-close" type="button">✕</button>
+      </div>
+
+      <form id="addPickForm">
+        <div class="pick-form-section">
+          <label class="form-label">Select a Game</label>
+          <select id="gameSelect" class="form-select" required>
+            <option value="">Choose a game…</option>
+          </select>
+        </div>
+
+        <div class="pick-form-section">
+          <label class="form-label">Bet Type</label>
+          <select id="betTypeSelect" class="form-select" required>
+            <option value="">Choose bet type…</option>
+            <option value="moneyline">Moneyline</option>
+            <option value="spread">Spread</option>
+            <option value="total">Over/Under</option>
+            <option value="prop">Prop Bet</option>
+          </select>
+        </div>
+
+        <div class="pick-form-section">
+          <label class="form-label">Your Pick</label>
+          <input id="selectionInput" class="form-input" type="text" placeholder="e.g., Lakers -5" required />
+        </div>
+
+        <div class="form-row">
+          <div class="pick-form-section">
+            <label class="form-label">Odds</label>
+            <input id="oddsInput" class="form-input" type="number" placeholder="-110" required />
+          </div>
+          <div class="pick-form-section">
+            <label class="form-label">Stake ($)</label>
+            <input id="stakeInput" class="form-input" type="number" placeholder="0" min="0" />
+          </div>
+        </div>
+
+        <div class="pick-form-section">
+          <label class="form-label">Your Reasoning</label>
+          <textarea id="reasoningInput" class="form-textarea" placeholder="Why do you like this pick?"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-submit-pick" type="submit">Post Pick</button>
+          <button class="btn-cancel-pick" type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Load games for selection
+  const gameSelect = modal.querySelector('#gameSelect');
+  const games = getGames({ dayOffset: state.dayOffset });
+  games.forEach(game => {
+    const option = document.createElement('option');
+    option.value = game.id;
+    option.textContent = `${game.awayTeam} @ ${game.homeTeam} (${game.league})`;
+    gameSelect.appendChild(option);
+  });
+
+  // Wire up interactions
+  modal.querySelector('.add-pick-close').addEventListener('click', () => modal.remove());
+  modal.querySelector('.btn-cancel-pick').addEventListener('click', (e) => {
+    e.preventDefault();
+    modal.remove();
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+
+  modal.querySelector('#addPickForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const gameId = gameSelect.value;
+    const game = gameId ? getGameById(gameId) : null;
+    if (!game) {
+      alert('Please select a game');
+      return;
+    }
+
+    try {
+      await addPick({
+        gameId,
+        awayTeam: game.awayTeam,
+        homeTeam: game.homeTeam,
+        sport: game.league,
+        selection: modal.querySelector('#selectionInput').value,
+        odds: parseInt(modal.querySelector('#oddsInput').value),
+        betType: modal.querySelector('#betTypeSelect').value,
+        stake: parseFloat(modal.querySelector('#stakeInput').value) || 0,
+        reasoning: modal.querySelector('#reasoningInput').value,
+      });
+
+      modal.remove();
+      // Refresh the feed
+      const feedEl = document.getElementById('communityFeed');
+      if (feedEl) await loadAndRenderCommunityPicks(feedEl);
+    } catch (err) {
+      alert('Failed to post pick: ' + err.message);
+    }
+  });
+}
+
+function bindCommunityBtn() {
+  const btn = document.getElementById('communityBtn');
+  if (!btn) return;
+  btn.addEventListener('click', renderCommunityFeed);
 }
 
 // ── Live Odds view ────────────────────────────────────────────────────────
