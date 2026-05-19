@@ -61,7 +61,22 @@
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\amin\\\\Projects\\\\sports-betting-app\" -Depth 1 -Name | Where-Object {-not $_.StartsWith\\('.'\\)} | Sort-Object)",
       "PowerShell(Set-Location C:\\\\Users\\\\amin\\\\Projects\\\\sports-betting-app; $env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npx tsc --noEmit 2>&1 | Select-Object -First 80)",
       "PowerShell(eas build *)",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "Bash(dir \"C:\\\\Users\\\\amin\\\\Documents\\\\Nogame updated\\\\.claude\\\\worktrees\\\\pensive-mestorf-9fd58b\" /b)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git commit -m 'Add debug logging and ensure modal is hidden on page load *)",
+      "Bash(git commit -m 'Revert to auth-gated app.html, keep landing page freely accessible *)",
+      "Bash(git commit -m 'Fix: remove broken auth script from app.html head *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git ls-remote *)",
+      "Bash(git commit *)",
+      "Bash(curl -s https://nogame.dev)",
+      "Bash(curl -s https://nogame.dev/css/auth.css)",
+      "Bash(curl -s -I https://nogame.dev)",
+      "Bash(curl -s -I https://nogame.dev/css/auth.css)"
     ]
   }
 }

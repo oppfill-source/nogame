@@ -56,6 +56,11 @@ export const SPORTSBOOKS = [
     color: '#D50032', emoji: '🎪',
     statesAvailable: ['AZ','CO','IN','IA','NJ','NY','OH','VA'],
   },
+  {
+    id: 'pn',     name: 'PlayNow',     short: 'PN',
+    color: '#007AFF', emoji: '🎯',
+    statesAvailable: ['CO','IL','IN','IA','MI','NJ','NY','OH','PA','WV'],
+  },
 ];
 
 const BY_ID = SPORTSBOOKS.reduce(function(acc, b) { acc[b.id] = b; return acc; }, {});
