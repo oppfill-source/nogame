@@ -79,7 +79,8 @@
       "Bash(curl -s -I https://nogame.dev/css/auth.css)",
       "Bash(node -c js/app.js)",
       "Bash(node -c communityPicks.js)",
-      "Bash(node -c app.js)"
+      "Bash(node -c app.js)",
+      "Bash(node -c analytics.js)"
     ]
   }
 }

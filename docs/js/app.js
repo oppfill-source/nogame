@@ -21,6 +21,7 @@ import { addBet, getBets, settleBet, getBetStats, calculatePayout, calculateProf
 import { startLiveOddsSync, stopLiveOddsSync, getAllLiveGames, getMovementIcon, formatMovement, isSharpMovement } from './liveOdds.js';
 import { getCurrentUserProfile, getUserProfile, updateUserProfile, getUserStats, getLeaderboard, getAvatarInitials, uploadAvatar } from './userProfiles.js';
 import { getPicks, addPick, likePick, unlikePick, hasUserLikedPick, addComment, getComments, followUser, unfollowUser, isFollowing } from './communityPicks.js';
+import { getUserBetsForAnalytics, calculateAdvancedMetrics, calculateEquityCurve, getPerformanceBySport, getPerformanceByBookmaker, generateChartData } from './analytics.js';
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindLiveOddsBtn();
   bindProfileBtn();
   bindLeaderboardBtn();
+  bindAnalyticsBtn();
 
   // Router: mounts the correct view on every hash change
   initRouter(route => {
@@ -1487,6 +1489,263 @@ function bindLeaderboardBtn() {
   const btn = document.getElementById('leaderboardBtn');
   if (!btn) return;
   btn.addEventListener('click', renderLeaderboard);
+}
+
+// ── Analytics view ────────────────────────────────────────────────────────
+
+let analyticsDateRange = 'all'; // 'all', '7d', '30d', '90d'
+
+async function renderAnalytics() {
+  const main = document.getElementById('pageMain');
+  if (!main) return;
+
+  const session = await getSession();
+  if (!session?.user?.id) return;
+
+  main.innerHTML = `
+    <div class="analytics-container">
+      <div class="analytics-header">
+        <div class="analytics-title">📈 Performance Analytics</div>
+        <div class="analytics-date-filter">
+          <button class="date-range-btn date-range-btn--active" data-range="all" type="button">All Time</button>
+          <button class="date-range-btn" data-range="7d" type="button">Last 7 Days</button>
+          <button class="date-range-btn" data-range="30d" type="button">Last 30 Days</button>
+          <button class="date-range-btn" data-range="90d" type="button">Last 90 Days</button>
+        </div>
+      </div>
+      <div id="analyticsContent">Loading analytics...</div>
+    </div>
+  `;
+
+  const contentEl = document.getElementById('analyticsContent');
+
+  // Date range filter
+  main.querySelectorAll('.date-range-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      analyticsDateRange = e.currentTarget.dataset.range;
+      main.querySelectorAll('.date-range-btn').forEach(b => b.classList.remove('date-range-btn--active'));
+      e.currentTarget.classList.add('date-range-btn--active');
+      await loadAndRenderAnalytics(contentEl, session.user.id);
+    });
+  });
+
+  await loadAndRenderAnalytics(contentEl, session.user.id);
+}
+
+async function loadAndRenderAnalytics(container, userId) {
+  try {
+    // Calculate date range
+    let dateRange = null;
+    if (analyticsDateRange !== 'all') {
+      const end = new Date();
+      const start = new Date();
+      const days = analyticsDateRange === '7d' ? 7 : analyticsDateRange === '30d' ? 30 : 90;
+      start.setDate(start.getDate() - days);
+      dateRange = {
+        start: start.toISOString(),
+        end: end.toISOString(),
+      };
+    }
+
+    const bets = await getUserBetsForAnalytics(userId, dateRange);
+
+    if (bets.length === 0) {
+      container.innerHTML = `
+        <div class="analytics-empty">
+          <div class="analytics-empty-icon">📭</div>
+          <div class="analytics-empty-text">No bets in this period yet.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const metrics = calculateAdvancedMetrics(bets);
+    const curve = calculateEquityCurve(bets);
+    const bySport = getPerformanceBySport(bets);
+    const byBook = getPerformanceByBookmaker(bets);
+    const winLossData = generateChartData(bets, 'winLossRatio');
+
+    container.innerHTML = `
+      <!-- Key Metrics -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Total Bets</div>
+          <div class="metric-value">${metrics.totalBets}</div>
+          <div class="metric-sub">${metrics.settledBets} settled</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Win Rate</div>
+          <div class="metric-value positive">${metrics.winRate}%</div>
+          <div class="metric-sub">${metrics.wins}W ${metrics.losses}L ${metrics.pushes}P</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">ROI</div>
+          <div class="metric-value ${metrics.roi >= 0 ? 'positive' : 'negative'}">${metrics.roi >= 0 ? '+' : ''}${metrics.roi}%</div>
+          <div class="metric-sub">Return on invested</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total Profit</div>
+          <div class="metric-value ${metrics.totalProfit >= 0 ? 'positive' : 'negative'}">$${metrics.totalProfit >= 0 ? '+' : ''}${metrics.totalProfit}</div>
+          <div class="metric-sub">Staked: $${metrics.totalStaked}</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Avg Bet</div>
+          <div class="metric-value">$${metrics.avgBetSize}</div>
+          <div class="metric-sub">Per wager</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Max Drawdown</div>
+          <div class="metric-value negative">${metrics.maxDrawdown}%</div>
+          <div class="metric-sub">Peak to trough</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Win Streak</div>
+          <div class="metric-value positive">${metrics.longestWinStreak}</div>
+          <div class="metric-sub">Longest: ${metrics.longestWinStreak}</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Sharpe Ratio</div>
+          <div class="metric-value">${metrics.sharpeRatio}</div>
+          <div class="metric-sub">Risk-adjusted return</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-section">
+        <div class="chart-card">
+          <div class="chart-title">Equity Curve</div>
+          <div class="line-chart">
+            ${curve.slice(-20).map((point, idx) => {
+              const minBalance = Math.min(...curve.map(c => c.balance));
+              const maxBalance = Math.max(...curve.map(c => c.balance));
+              const range = maxBalance - minBalance || 1;
+              const height = ((point.balance - minBalance) / range) * 100;
+              const isNegative = point.balance < 0;
+              return `
+                <div class="chart-bar ${isNegative ? 'negative' : ''}" style="height: ${height}%">
+                  <div class="chart-tooltip">$${point.balance.toFixed(2)}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">Win/Loss/Push Distribution</div>
+          <div class="pie-chart">
+            <div class="pie-visual"></div>
+            <div class="pie-legend">
+              <div class="pie-item">
+                <div class="pie-color green"></div>
+                <span>Wins: ${metrics.wins}</span>
+              </div>
+              <div class="pie-item">
+                <div class="pie-color red"></div>
+                <span>Losses: ${metrics.losses}</span>
+              </div>
+              <div class="pie-item">
+                <div class="pie-color gray"></div>
+                <span>Pushes: ${metrics.pushes}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance by Sport -->
+      <div class="breakdown-section">
+        <div class="breakdown-title">Performance by Sport</div>
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th>Sport</th>
+              <th>Bets</th>
+              <th>W-L</th>
+              <th>Win Rate</th>
+              <th>ROI</th>
+              <th>Profit</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(bySport).map(([sport, data]) => `
+              <tr>
+                <td>${sport}</td>
+                <td>${data.count}</td>
+                <td>${data.wins}-${data.losses}</td>
+                <td><span class="stat-badge ${data.winRate >= 50 ? 'positive' : 'negative'}">${data.winRate}%</span></td>
+                <td><span class="stat-badge ${data.roi >= 0 ? 'positive' : 'negative'}">${data.roi >= 0 ? '+' : ''}${data.roi}%</span></td>
+                <td><span class="stat-badge ${data.profit >= 0 ? 'positive' : 'negative'}">$${data.profit >= 0 ? '+' : ''}${data.profit}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Performance by Bookmaker -->
+      ${Object.keys(byBook).length > 0 ? `
+        <div class="breakdown-section">
+          <div class="breakdown-title">Performance by Bookmaker</div>
+          <table class="breakdown-table">
+            <thead>
+              <tr>
+                <th>Sportsbook</th>
+                <th>Bets</th>
+                <th>W-L</th>
+                <th>Win Rate</th>
+                <th>ROI</th>
+                <th>Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(byBook).map(([book, data]) => `
+                <tr>
+                  <td>${book}</td>
+                  <td>${data.count}</td>
+                  <td>${data.wins}-${data.losses}</td>
+                  <td><span class="stat-badge ${data.winRate >= 50 ? 'positive' : 'negative'}">${data.winRate}%</span></td>
+                  <td><span class="stat-badge ${data.roi >= 0 ? 'positive' : 'negative'}">${data.roi >= 0 ? '+' : ''}${data.roi}%</span></td>
+                  <td><span class="stat-badge ${data.profit >= 0 ? 'positive' : 'negative'}">$${data.profit >= 0 ? '+' : ''}${data.profit}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : ''}
+
+      <!-- Advanced Metrics -->
+      <div class="advanced-metrics">
+        <div class="advanced-title">Advanced Metrics</div>
+        <div class="metrics-pairs">
+          <div class="metric-pair">
+            <div class="metric-pair-label">Profit Factor</div>
+            <div class="metric-pair-value">${metrics.profitFactor}</div>
+          </div>
+          <div class="metric-pair">
+            <div class="metric-pair-label">Current Streak</div>
+            <div class="metric-pair-value ${metrics.consecutiveWins > 0 ? 'positive' : 'negative'}">
+              ${metrics.consecutiveWins > 0 ? '+' + metrics.consecutiveWins + 'W' : metrics.consecutiveLosses + 'L'}
+            </div>
+          </div>
+          <div class="metric-pair">
+            <div class="metric-pair-label">Max Win</div>
+            <div class="metric-pair-value positive">$${metrics.maxWin}</div>
+          </div>
+          <div class="metric-pair">
+            <div class="metric-pair-label">Max Loss</div>
+            <div class="metric-pair-value negative">$${Math.abs(metrics.maxLoss)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div style="color:var(--text-muted);text-align:center;padding:20px">Error loading analytics: ${err.message}</div>`;
+  }
+}
+
+function bindAnalyticsBtn() {
+  const btn = document.getElementById('analyticsBtn');
+  if (!btn) return;
+  btn.addEventListener('click', renderAnalytics);
 }
 
 // ── Sports navigation ──────────────────────────────────────────────────────
