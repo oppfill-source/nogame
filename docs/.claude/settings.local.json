@@ -3,7 +3,12 @@
     "allow": [
       "Bash(start *)",
       "Bash(npx --version)",
-      "Bash(python -m http.server 8000)"
+      "Bash(python -m http.server 8000)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\amin\\\\Documents\\\\Nogame updated\\\\docs\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\amin\\\\Documents\\\\Nogame updated\\\\docs\\\\\", \"\"\\) } | Sort-Object)",
+      "Read(//c/Users/amin/Documents/Nogame updated/**)",
+      "Bash(supabase functions *)",
+      "PowerShell(Get-ChildItem *)",
+      "WebFetch(domain:site.api.espn.com)"
     ]
   }
 }

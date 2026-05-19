@@ -762,7 +762,7 @@ async function loadAndRenderCommunityPicks(container) {
       return;
     }
 
-    container.innerHTML = `<div class="picks-feed">${picks.map(pick => renderPickCard(pick)).join('')}</div>`;
+    container.innerHTML = `<div class="picks-feed">${picks.map(pick => renderCommunityPickCard(pick)).join('')}</div>`;
 
     // Wire up interactions
     container.querySelectorAll('.like-btn').forEach(btn => {
@@ -848,7 +848,7 @@ async function loadAndRenderComments(pickId, commentsEl) {
   }
 }
 
-function renderPickCard(pick) {
+function renderCommunityPickCard(pick) {
   const author = pick.author || {};
 
   return `
