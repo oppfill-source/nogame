@@ -15,17 +15,6 @@
   <link rel="stylesheet" href="css/sidebar.css" />
   <link rel="stylesheet" href="css/detail.css" />
   <link rel="stylesheet" href="css/auth.css" />
-  <!-- Auth gate: redirect unauthenticated visitors to landing page -->
-  <script>
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-    const supabase = createClient(
-      'https://axlybeznzibovvqkllzq.supabase.co',
-      'sb_publishable_dN_eqVSKcdgwZCb1QEyHkA_vnmF7qS0'
-    );
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) window.location.replace('index.html?redirect=app');
-    });
-  </script>
 </head>
 <body class="page-scores">
 
