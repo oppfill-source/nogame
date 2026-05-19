@@ -329,14 +329,24 @@ serve(async (req) => {
     const shortlist = candidates.slice(0, 30);
 
     if (shortlist.length === 0) {
+      const stats = {
+        total_outcomes_scanned: allOutcomes.length,
+        positive_edge: allOutcomes.filter((o) => o.status === "edge").length,
+        neutral:       allOutcomes.filter((o) => o.status === "neutral").length,
+        no_edge:       allOutcomes.filter((o) => o.status === "no_edge").length,
+        bet365_missing: allOutcomes.length === 0,
+      };
+      let message = "No Bet365 positive-edge markets found for the chosen filters.";
+      if (allOutcomes.length === 0) {
+        message = "No live games returned by The Odds API for the selected sport(s). Try a different sport or check back later.";
+      } else if (stats.positive_edge === 0) {
+        message = `Scanned ${stats.total_outcomes_scanned} markets — ${stats.neutral} were ~equal to market avg, ${stats.no_edge} had Bet365 below average, 0 had a Bet365 edge. Try 'All sports' or 'All markets'.`;
+      }
       return new Response(
         JSON.stringify({
-          picks: [],
-          count: 0,
-          neutral_count: allOutcomes.filter((o) => o.status === "neutral").length,
-          no_edge_count: allOutcomes.filter((o) => o.status === "no_edge").length,
+          picks: [], count: 0, params, stats,
           correct_score_table: correctScoreTable,
-          message: "No Bet365 positive-edge markets found for the chosen filters.",
+          message,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
