@@ -18,7 +18,7 @@ import {
   renderFeed, getFilteredGames
 } from './views/homeView.js';
 import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js?v=4';
-import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoji } from './aiPicks.js';
+import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoji, riskBadge } from './aiPicks.js';
 import { addBet, getBets, settleBet, getBetStats, calculatePayout, calculateProfit, formatCurrency } from './betTracking.js';
 import { startLiveOddsSync, stopLiveOddsSync, getAllLiveGames, getMovementIcon, formatMovement, isSharpMovement } from './liveOdds.js';
 import { getCurrentUserProfile, getUserProfile, updateUserProfile, getUserStats, getLeaderboard, getAvatarInitials, uploadAvatar } from './userProfiles.js';
@@ -243,6 +243,8 @@ function mountTeamPlaceholder(main, teamId) {
 
 let aiPicksLoading = false;
 
+let lastAiResponse = null; // last full Edge Function response (for correct score table, stats)
+
 async function renderAiPicks() {
   const main = document.getElementById('pageMain');
   if (!main) return;
@@ -252,90 +254,217 @@ async function renderAiPicks() {
       <div class="ai-picks-header">
         <div class="ai-picks-title">
           <span>✨ AI Picks</span>
-          <span style="font-size:0.8rem;color:var(--text-muted)">by Engie</span>
-        </div>
-        <div class="ai-picks-refresh">
-          <button id="refreshAiPicksBtn" class="btn-refresh-ai" type="button" ${aiPicksLoading ? 'disabled' : ''}>
-            ${aiPicksLoading ? '<span class="refresh-spinner"></span>' : '⟳'} Refresh
-          </button>
+          <span style="font-size:0.8rem;color:var(--text-muted)">Bet365 edge vs market avg · by Engie</span>
         </div>
       </div>
-      <div id="aiPicksContent">Loading picks...</div>
+
+      <details class="ai-prompt-panel" open>
+        <summary class="ai-prompt-summary">⚙️ Prompt &amp; Filters</summary>
+        <div class="ai-prompt-grid">
+          <div class="ai-prompt-field">
+            <label>Sport</label>
+            <select id="ap_sport">
+              <option value="all">All major sports</option>
+              <option value="americanfootball_nfl">NFL</option>
+              <option value="basketball_nba">NBA</option>
+              <option value="baseball_mlb">MLB</option>
+              <option value="icehockey_nhl">NHL</option>
+              <option value="soccer_epl">EPL (Soccer)</option>
+              <option value="soccer_usa_mls">MLS (Soccer)</option>
+              <option value="soccer_uefa_champs_league">UCL (Soccer)</option>
+              <option value="mma_mixed_martial_arts">MMA</option>
+            </select>
+          </div>
+          <div class="ai-prompt-field">
+            <label>Market type</label>
+            <select id="ap_market">
+              <option value="all">All</option>
+              <option value="moneyline">Moneyline</option>
+              <option value="spread">Spread</option>
+              <option value="total">Over/Under</option>
+            </select>
+          </div>
+          <div class="ai-prompt-field">
+            <label>Risk level</label>
+            <select id="ap_risk">
+              <option value="conservative">Conservative</option>
+              <option value="balanced" selected>Balanced</option>
+              <option value="aggressive">Aggressive</option>
+            </select>
+          </div>
+          <div class="ai-prompt-field">
+            <label>Strategy</label>
+            <select id="ap_strategy">
+              <option value="value" selected>Value picks</option>
+              <option value="safest">Safest picks</option>
+              <option value="underdog">Underdog picks</option>
+              <option value="parlay">Parlay builder</option>
+            </select>
+          </div>
+          <div class="ai-prompt-field">
+            <label># Picks (1–10)</label>
+            <input id="ap_num" type="number" min="1" max="10" value="5" />
+          </div>
+          <div class="ai-prompt-field">
+            <label>Min confidence %</label>
+            <input id="ap_minconf" type="number" min="40" max="95" value="55" />
+          </div>
+          <div class="ai-prompt-field">
+            <label>Odds range (American)</label>
+            <div style="display:flex;gap:6px">
+              <input id="ap_oddsmin" type="number" placeholder="-300" style="width:50%" />
+              <input id="ap_oddsmax" type="number" placeholder="+400" style="width:50%" />
+            </div>
+          </div>
+          <div class="ai-prompt-field">
+            <label>Explanation detail</label>
+            <select id="ap_detail">
+              <option value="brief">Brief</option>
+              <option value="balanced" selected>Balanced</option>
+              <option value="detailed">Detailed</option>
+            </select>
+          </div>
+          <div class="ai-prompt-field ai-prompt-field--wide">
+            <label>Custom instruction (optional)</label>
+            <textarea id="ap_custom" rows="2" placeholder="e.g. Find me NFL road underdogs under +200 with line-shop edge…"></textarea>
+          </div>
+          <div class="ai-prompt-field ai-prompt-field--wide" style="align-items:flex-end;display:flex;justify-content:flex-end">
+            <button id="generatePicksBtn" class="btn-refresh-ai" type="button" ${aiPicksLoading ? 'disabled' : ''}>
+              ${aiPicksLoading ? '<span class="refresh-spinner"></span> Generating…' : '✨ Generate Picks'}
+            </button>
+          </div>
+        </div>
+      </details>
+
+      <div id="aiPicksContent">Loading picks…</div>
+
+      <div id="correctScoreSection"></div>
     </div>
   `;
 
   const contentEl = document.getElementById('aiPicksContent');
-  const refreshBtn = document.getElementById('refreshAiPicksBtn');
+  const csEl = document.getElementById('correctScoreSection');
+  const generateBtn = document.getElementById('generatePicksBtn');
 
-  refreshBtn.addEventListener('click', async () => {
+  generateBtn.addEventListener('click', async () => {
     if (aiPicksLoading) return;
     aiPicksLoading = true;
-    refreshBtn.disabled = true;
-    refreshBtn.innerHTML = '<span class="refresh-spinner"></span> Generating...';
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<span class="refresh-spinner"></span> Generating…';
+    contentEl.innerHTML = '<div class="picks-empty">Asking Engie for picks… this can take 20-40 seconds.</div>';
 
     try {
-      await refreshAiPicks();
-      await loadAndRenderPicks(contentEl);
+      const params = collectPromptParams();
+      lastAiResponse = await refreshAiPicks(params);
+      renderAiResponse(contentEl, csEl, lastAiResponse);
     } catch (err) {
       contentEl.innerHTML = `<div class="rate-limit-msg">${err.message}</div>`;
     } finally {
       aiPicksLoading = false;
-      refreshBtn.disabled = false;
-      refreshBtn.innerHTML = '⟳ Refresh';
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = '✨ Generate Picks';
     }
   });
 
-  await loadAndRenderPicks(contentEl);
-}
-
-async function loadAndRenderPicks(container) {
-  try {
-    const picks = await getAiPicks();
-
-    if (picks.length === 0) {
-      container.innerHTML = `
-        <div class="picks-empty">
-          <div class="picks-empty-icon">🎯</div>
-          <div class="picks-empty-text">
-            No picks available right now.<br>
-            Click Refresh to generate new AI picks.
-          </div>
+  // Initial render: show cached picks if any
+  const cached = await getAiPicks();
+  if (cached.length > 0) {
+    contentEl.innerHTML = renderPicksList(cached);
+    wirePickActions(contentEl);
+  } else {
+    contentEl.innerHTML = `
+      <div class="picks-empty">
+        <div class="picks-empty-icon">🎯</div>
+        <div class="picks-empty-text">
+          No picks yet. Adjust the prompt above and click <strong>Generate Picks</strong>.
         </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = `
-      <div class="ai-picks-list">
-        ${picks.map(pick => renderPickCard(pick)).join('')}
-      </div>
-    `;
-
-    // Wire up pick actions
-    container.querySelectorAll('.pick-action-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        const action = e.currentTarget.dataset.action;
-        const pickId = e.currentTarget.dataset.pickId;
-        console.log('Pick action:', action, pickId);
-        // TODO: Implement rate pick as win/loss
-      });
-    });
-  } catch (err) {
-    container.innerHTML = `<div class="rate-limit-msg">Error loading picks: ${err.message}</div>`;
+      </div>`;
   }
 }
 
+function collectPromptParams() {
+  const v = (id) => document.getElementById(id)?.value;
+  const n = (id) => {
+    const x = parseFloat(v(id));
+    return Number.isFinite(x) ? x : undefined;
+  };
+  return {
+    sport:              v('ap_sport'),
+    market_type:        v('ap_market'),
+    risk_level:         v('ap_risk'),
+    strategy:           v('ap_strategy'),
+    num_picks:          n('ap_num') ?? 5,
+    min_confidence:     n('ap_minconf') ?? 55,
+    odds_min:           n('ap_oddsmin'),
+    odds_max:           n('ap_oddsmax'),
+    explanation_detail: v('ap_detail'),
+    custom_prompt:      v('ap_custom') ?? '',
+  };
+}
+
+function renderAiResponse(contentEl, csEl, resp) {
+  const picks = (resp.picks || []).map(p => ({
+    ...p,
+    odds_data: typeof p.odds_data === 'string' ? safeParseJSON(p.odds_data) : (p.odds_data || []),
+    key_factors: Array.isArray(p.key_factors) ? p.key_factors : (p.key_factors ? safeParseJSON(p.key_factors) : []),
+  }));
+
+  if (picks.length === 0) {
+    contentEl.innerHTML = `
+      <div class="picks-empty">
+        <div class="picks-empty-icon">🤔</div>
+        <div class="picks-empty-text">
+          ${resp.message || 'Engie did not find any picks matching those filters.'}
+          ${resp.stats ? `<div class="ai-stats-line">Scanned ${resp.stats.total_outcomes_scanned} outcomes · ${resp.stats.positive_edge} with edge · ${resp.stats.neutral} neutral · ${resp.stats.no_edge} no edge</div>` : ''}
+        </div>
+      </div>`;
+  } else {
+    const statsLine = resp.stats
+      ? `<div class="ai-stats-line">Scanned ${resp.stats.total_outcomes_scanned} outcomes — ${resp.stats.positive_edge} with Bet365 edge, ${resp.stats.neutral} neutral, ${resp.stats.no_edge} no edge.</div>`
+      : '';
+    contentEl.innerHTML = statsLine + renderPicksList(picks);
+    wirePickActions(contentEl);
+  }
+
+  // Correct Score table (raw — no AI logic yet)
+  if (csEl) {
+    csEl.innerHTML = resp.correct_score_table?.length
+      ? renderCorrectScoreSection(resp.correct_score_table)
+      : '';
+  }
+}
+
+function safeParseJSON(s) {
+  try { return JSON.parse(s); } catch { return []; }
+}
+
+function renderPicksList(picks) {
+  return `<div class="ai-picks-list">${picks.map(renderPickCard).join('')}</div>`;
+}
+
+function wirePickActions(container) {
+  container.querySelectorAll('.pick-action-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const action = e.currentTarget.dataset.action;
+      const pickId = e.currentTarget.dataset.pickId;
+      console.log('Pick action:', action, pickId);
+    });
+  });
+}
+
 function renderPickCard(pick) {
-  const bestBook = pick.odds_data?.[0];
   const kellyStake = calculateKellyStake(pick.confidence_pct, pick.recommended_odds, 0.25);
   const emoji = getOddEmoji(pick.value_rating);
+  const risk = riskBadge(pick.risk_level);
+  const edgeStr = pick.edge_pct != null ? `+${Number(pick.edge_pct).toFixed(2)}%` : '–';
+  const factors = pick.key_factors || [];
 
   return `
     <div class="ai-pick-card">
       <div class="pick-header">
         <div>
           <div class="pick-game">${pick.away_team} @ ${pick.home_team}</div>
-          <div class="pick-league">${pick.sport}</div>
+          <div class="pick-league">${pick.league || pick.sport}</div>
         </div>
         <div class="pick-rating">
           <div class="rating-emoji">${emoji}</div>
@@ -345,16 +474,13 @@ function renderPickCard(pick) {
 
       <div class="pick-selection">
         <div class="selection-bet">${pick.selection}</div>
-        <div class="selection-type">${pick.bet_type === 'total' ? 'Over/Under' : pick.bet_type.charAt(0).toUpperCase() + pick.bet_type.slice(1)}</div>
+        <div class="selection-type">${pick.market || pick.bet_type}</div>
       </div>
 
-      <div class="pick-odds">
-        ${pick.odds_data?.slice(0, 4).map(book => `
-          <div class="odds-item">
-            <div class="odds-book">${book.title}</div>
-            <div class="odds-value">${formatOdds(book.odds)}</div>
-          </div>
-        `).join('') || '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">No odds available</div>'}
+      <div class="pick-edge-row">
+        <div class="edge-pill edge-pill--bet365">Bet365 ${formatOdds(pick.bet365_odds ?? pick.recommended_odds)}</div>
+        <div class="edge-pill edge-pill--avg">Market avg ${formatOdds(pick.avg_market_odds ? Math.round(pick.avg_market_odds) : null)}</div>
+        <div class="edge-pill edge-pill--edge">Edge ${edgeStr}</div>
       </div>
 
       <div class="pick-stats">
@@ -367,16 +493,34 @@ function renderPickCard(pick) {
           <div class="stat-value">${(kellyStake * 100).toFixed(1)}%</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Recommended Odds</div>
-          <div class="stat-value">${formatOdds(pick.recommended_odds)}</div>
+          <div class="stat-label">Stake Size</div>
+          <div class="stat-value">${(pick.stake_level || 'small').toUpperCase()}</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Best Available</div>
-          <div class="stat-value">${bestBook ? formatOdds(bestBook.odds) : 'N/A'}</div>
+          <div class="stat-label">Risk</div>
+          <div class="stat-value">${risk.emoji} ${risk.label}</div>
         </div>
       </div>
 
-      <div class="pick-reasoning">${pick.reasoning}</div>
+      ${pick.odds_data?.length ? `
+        <div class="pick-odds">
+          ${pick.odds_data.slice(0, 6).map(b => `
+            <div class="odds-item ${b.key && b.key.toLowerCase().includes('bet365') ? 'odds-item--ref' : ''}">
+              <div class="odds-book">${b.title}</div>
+              <div class="odds-value">${formatOdds(b.odds)}</div>
+            </div>
+          `).join('')}
+        </div>` : ''}
+
+      <div class="pick-reasoning">${pick.reasoning || ''}</div>
+
+      ${factors.length ? `
+        <div class="pick-factors">
+          <div class="pick-factors-label">Key factors</div>
+          <ul>${factors.map(f => `<li>${f}</li>`).join('')}</ul>
+        </div>` : ''}
+
+      ${pick.warning ? `<div class="pick-warning">⚠️ ${pick.warning}</div>` : ''}
 
       <div class="pick-actions">
         <button class="btn-small pick-action-btn" data-action="win" data-pick-id="${pick.id}" type="button">✅ Won</button>
@@ -384,7 +528,54 @@ function renderPickCard(pick) {
         <button class="btn-small pick-action-btn" data-action="push" data-pick-id="${pick.id}" type="button">➖ Push</button>
       </div>
 
-      <div class="pick-time">Updated ${new Date(pick.created_at || pick.expires_at).toLocaleDateString()}</div>
+      <div class="pick-time">Generated ${new Date(pick.created_at || Date.now()).toLocaleString()}</div>
+    </div>
+  `;
+}
+
+function renderCorrectScoreSection(table) {
+  return `
+    <div class="cs-section">
+      <div class="cs-header">
+        <div class="cs-title">📊 Correct Score odds (raw — AI logic coming later)</div>
+        <div class="cs-sub">Every available score with odds from each sportsbook.</div>
+      </div>
+      ${table.map(game => {
+        const scores = Object.entries(game.scores)
+          .sort((a, b) => {
+            const aMin = Math.min(...a[1].map(x => x.odds > 0 ? x.odds : -x.odds));
+            const bMin = Math.min(...b[1].map(x => x.odds > 0 ? x.odds : -x.odds));
+            return aMin - bMin;
+          });
+        return `
+          <div class="cs-game">
+            <div class="cs-game-title">
+              <strong>${game.away_team} @ ${game.home_team}</strong>
+              <span class="cs-game-league">${game.league}</span>
+            </div>
+            <div class="cs-table-wrap">
+              <table class="cs-table">
+                <thead>
+                  <tr>
+                    <th>Score</th>
+                    ${[...new Set(game.scores[scores[0][0]].map(b => b.title))].map(title => `<th>${title}</th>`).join('')}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${scores.map(([score, books]) => {
+                    const allBooks = [...new Set(game.scores[scores[0][0]].map(b => b.title))];
+                    const oddsMap = Object.fromEntries(books.map(b => [b.title, b.odds]));
+                    return `
+                      <tr>
+                        <td class="cs-score">${score}</td>
+                        ${allBooks.map(t => `<td>${oddsMap[t] != null ? formatOdds(oddsMap[t]) : '–'}</td>`).join('')}
+                      </tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('')}
     </div>
   `;
 }
