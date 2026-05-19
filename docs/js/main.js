@@ -254,7 +254,6 @@ async function renderAiPicks() {
       <div class="ai-picks-header">
         <div class="ai-picks-title">
           <span>✨ AI Picks</span>
-          <span style="font-size:0.8rem;color:var(--text-muted)">Bet365 edge vs market avg · by Engie</span>
         </div>
       </div>
 
