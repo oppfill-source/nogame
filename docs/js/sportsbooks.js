@@ -61,6 +61,31 @@ export const SPORTSBOOKS = [
     color: '#007AFF', emoji: '🎯',
     statesAvailable: ['CO','IL','IN','IA','MI','NJ','NY','OH','PA','WV'],
   },
+  {
+    id: 'pb',     name: 'PointsBet',   short: 'PB',
+    color: '#1F2937', emoji: '📊',
+    statesAvailable: ['CO','IA','IL','IN','MI','NJ','NY','OH','PA','VA','WV'],
+  },
+  {
+    id: 'bovada', name: 'Bovada',      short: 'BOV',
+    color: '#FF6B6B', emoji: '🎲',
+    statesAvailable: ['AZ','CO','IL','IA','IN','LA','MI','MS','NJ','NY','PA','WV'],
+  },
+  {
+    id: 'betonline', name: 'BetOnline', short: 'BOL',
+    color: '#1E40AF', emoji: '⚡',
+    statesAvailable: ['AZ','CO','IL','IA','IN','LA','MI','NJ','NY','PA','WV'],
+  },
+  {
+    id: 'mybookie', name: 'MyBookie',   short: 'MB',
+    color: '#8B5CF6', emoji: '📱',
+    statesAvailable: ['AZ','CO','IL','IA','IN','LA','MI','NJ','NY','PA','WV'],
+  },
+  {
+    id: 'lowvig', name: 'LowVig',      short: 'LV',
+    color: '#06B6D4', emoji: '💰',
+    statesAvailable: ['AZ','CO','IL','IA','IN','LA','MI','NJ','NY','PA','WV'],
+  },
 ];
 
 const BY_ID = SPORTSBOOKS.reduce(function(acc, b) { acc[b.id] = b; return acc; }, {});

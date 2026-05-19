@@ -74,6 +74,8 @@ const BOOK_ID = {
   wynnbet:         'wynnbet',
   betonlineag:     'betonline',
   playnow:         'pn',
+  mybookieag:      'mybookie',
+  lowvig:          'lowvig',
 };
 
 export const PROP_LABEL = {
