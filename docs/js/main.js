@@ -22,6 +22,7 @@ import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoj
 import { addBet, getBets, settleBet, getBetStats, calculatePayout, calculateProfit, formatCurrency } from './betTracking.js';
 import { startLiveOddsSync, stopLiveOddsSync, getAllLiveGames, getMovementIcon, formatMovement, isSharpMovement } from './liveOdds.js';
 import { getCurrentUserProfile, getUserProfile, updateUserProfile, getUserStats, getLeaderboard, getAvatarInitials, uploadAvatar } from './userProfiles.js';
+import { renderProfileView, resetProfileTab } from './views/profileView.js';
 import { getPicks, addPick, likePick, unlikePick, hasUserLikedPick, addComment, getComments, followUser, unfollowUser, isFollowing } from './communityPicks.js';
 import { getUserBetsForAnalytics, calculateAdvancedMetrics, calculateEquityCurve, getPerformanceBySport, getPerformanceByBookmaker, generateChartData } from './analytics.js';
 
@@ -130,6 +131,9 @@ function mountView(route) {
       break;
     case 'team':
       mountTeamPlaceholder(main, route.params.id);
+      break;
+    case 'userProfile':
+      renderProfileView(main, route.params.id);
       break;
     default:
       mountHomeView(main);
@@ -1070,13 +1074,13 @@ function renderCommunityPickCard(pick) {
   return `
     <div class="pick-card" data-pick-id="${pick.id}">
       <div class="pick-card-header">
-        <div class="pick-user-info">
+        <a class="pick-user-info" href="${author.id ? `#user/${author.id}` : '#'}" style="text-decoration:none;color:inherit">
           <div class="pick-avatar">${author.username?.[0]?.toUpperCase() || '?'}</div>
           <div class="pick-user-details">
             <div class="pick-username">${author.username || 'Anonymous'}</div>
             <div class="pick-timestamp">${new Date(pick.created_at).toLocaleDateString()}</div>
           </div>
-        </div>
+        </a>
         <button class="pick-follow-btn ${author.id ? '' : 'hidden'}" data-user-id="${author.id}" type="button">Follow</button>
       </div>
 
@@ -1429,6 +1433,15 @@ function bindLiveOddsBtn() {
 async function renderUserProfile() {
   const main = document.getElementById('pageMain');
   if (!main) return;
+  resetProfileTab();
+  await renderProfileView(main, null);
+}
+
+// Old inline profile renderer kept below as `renderUserProfileLegacy` for reference;
+// it is no longer invoked but the helper functions it relied on remain in use elsewhere.
+async function renderUserProfileLegacy() {
+  const main = document.getElementById('pageMain');
+  if (!main) return;
 
   main.innerHTML = `<div style="padding:32px;text-align:center">Loading profile...</div>`;
 
@@ -1656,7 +1669,7 @@ function renderLeaderboardItem(user, rank) {
   const initials = getAvatarInitials(user.username);
 
   return `
-    <div class="leaderboard-item">
+    <a class="leaderboard-item" href="#user/${user.id}" style="text-decoration:none;color:inherit">
       <div class="leaderboard-rank">
         ${rankBadge ? `<div class="rank-badge ${rankBadge}">${rank + 1}</div>` : `<div style="font-size:1.2rem">${rank + 1}</div>`}
       </div>
@@ -1691,7 +1704,7 @@ function renderLeaderboardItem(user, rank) {
           <div class="leaderboard-stat-value">${user.totalBets}</div>
         </div>
       </div>
-    </div>
+    </a>
   `;
 }
 

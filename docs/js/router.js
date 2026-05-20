@@ -4,12 +4,14 @@
 //   game/{id}        → gameDetail
 //   league/{id}      → league
 //   team/{id}        → team
+//   user/{id}        → userProfile (public view)
 
 const ROUTES = [
   { pattern: /^$/, view: 'home', param: null },
   { pattern: /^game\/(.+)$/, view: 'gameDetail', param: 'id' },
   { pattern: /^league\/(.+)$/, view: 'league', param: 'id' },
   { pattern: /^team\/(.+)$/, view: 'team', param: 'id' },
+  { pattern: /^user\/(.+)$/, view: 'userProfile', param: 'id' },
 ];
 
 /**

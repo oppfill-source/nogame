@@ -16,7 +16,8 @@ export async function getCurrentUserProfile() {
     return null;
   }
 
-  return data;
+  // Email lives on auth.users — merge it in for the Settings tab.
+  return { ...data, email: session.data.session.user.email ?? null };
 }
 
 export async function getUserProfile(userId) {
@@ -153,10 +154,109 @@ export async function uploadAvatar(file) {
 }
 
 export function getAvatarInitials(username) {
-  return username
-    .split(' ')
+  if (!username) return '?';
+  return String(username)
+    .split(/[\s_-]+/)
     .map(word => word[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
+}
+
+// ── Account / Auth changes ──────────────────────────────────────────────────
+
+export async function changeEmail(newEmail) {
+  const { data, error } = await supabase.auth.updateUser({ email: newEmail });
+  if (error) throw error;
+  return data;
+}
+
+export async function changePassword(newPassword) {
+  if (!newPassword || newPassword.length < 8) {
+    throw new Error('Password must be at least 8 characters.');
+  }
+  const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+  return data;
+}
+
+// ── Social: followers / following ────────────────────────────────────────────
+
+export async function getFollowCounts(userId) {
+  const [followers, following] = await Promise.all([
+    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
+    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
+  ]);
+  return {
+    followers: followers.count ?? 0,
+    following: following.count ?? 0,
+  };
+}
+
+// ── Activity timeline ────────────────────────────────────────────────────────
+// Merges bets, picks shared, comments authored — newest first.
+
+export async function getRecentActivity(userId, limit = 25) {
+  const [betsRes, picksRes, commentsRes] = await Promise.all([
+    supabase.from('bets')
+      .select('id, sport, selection, status, stake, potential_payout, created_at, settled_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    supabase.from('picks')
+      .select('id, sport, selection, odds, bet_type, created_at, away_team, home_team')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    supabase.from('pick_comments')
+      .select('id, text, created_at, pick_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+  ]);
+
+  const items = [];
+  (betsRes.data || []).forEach(b => {
+    items.push({
+      kind: 'bet_placed',
+      ts: b.created_at,
+      icon: '🎯',
+      title: `Placed ${b.sport} bet`,
+      detail: `${b.selection} · $${b.stake}`,
+      meta: b,
+    });
+    if (b.settled_at && b.status !== 'pending') {
+      items.push({
+        kind: `bet_${b.status}`,
+        ts: b.settled_at,
+        icon: b.status === 'won' ? '✅' : b.status === 'lost' ? '❌' : '➖',
+        title: `Bet ${b.status}`,
+        detail: `${b.selection} · ${b.status === 'won' ? `+$${((b.potential_payout || 0) - b.stake).toFixed(2)}` : b.status === 'lost' ? `-$${b.stake}` : '$0'}`,
+        meta: b,
+      });
+    }
+  });
+  (picksRes.data || []).forEach(p => {
+    items.push({
+      kind: 'pick_shared',
+      ts: p.created_at,
+      icon: '💬',
+      title: 'Shared a pick',
+      detail: `${p.away_team} @ ${p.home_team} — ${p.selection}`,
+      meta: p,
+    });
+  });
+  (commentsRes.data || []).forEach(c => {
+    items.push({
+      kind: 'commented',
+      ts: c.created_at,
+      icon: '🗨️',
+      title: 'Commented on a pick',
+      detail: (c.text || '').slice(0, 80) + ((c.text || '').length > 80 ? '…' : ''),
+      meta: c,
+    });
+  });
+
+  items.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  return items.slice(0, limit);
 }
