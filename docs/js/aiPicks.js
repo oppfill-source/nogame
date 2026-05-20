@@ -104,3 +104,68 @@ export function riskBadge(level) {
   if (l === 'high' || l === 'aggressive')  return { emoji: '🔴', label: 'High Risk' };
   return { emoji: '🟡', label: 'Medium Risk' };
 }
+
+/**
+ * Conversational chat with Engie. Pass the full message history (oldest → newest)
+ * — function returns `{ reply, stats, candidate_count }`.
+ */
+export async function chatWithAi(messages) {
+  const session = await supabase.auth.getSession();
+  if (!session.data.session) throw new Error('Must be signed in');
+  const token = session.data.session.access_token;
+
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-picks-chat`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages }),
+  });
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try { msg = (await res.json()).error ?? msg; } catch {}
+    throw new Error(msg);
+  }
+  return await res.json();
+}
+
+/**
+ * Minimal markdown renderer for the chat bubbles.
+ * Supports: **bold**, *italic*, `code`, line breaks, `- ` and `* ` lists, and links.
+ * Escapes HTML first so user/AI content can't inject tags.
+ */
+export function renderMarkdown(text) {
+  if (!text) return '';
+  // 1. escape HTML
+  let html = String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // 2. code spans
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+  // 3. bold / italic
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+
+  // 4. URLs → anchors (very simple)
+  html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+
+  // 5. bullet lists (group consecutive lines starting with - or *)
+  const lines = html.split('\n');
+  const out = [];
+  let inList = false;
+  for (const line of lines) {
+    const m = line.match(/^[\-*]\s+(.+)$/);
+    if (m) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push(`<li>${m[1]}</li>`);
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(line);
+    }
+  }
+  if (inList) out.push('</ul>');
+
+  // 6. paragraph breaks (blank line → <br><br>)
+  return out.join('\n').replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+}

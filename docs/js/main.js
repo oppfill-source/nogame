@@ -18,7 +18,7 @@ import {
   renderFeed, getFilteredGames
 } from './views/homeView.js';
 import { renderGameDetailView, bindDetailView } from './views/gameDetailView.js?v=4';
-import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoji, riskBadge } from './aiPicks.js';
+import { getAiPicks, refreshAiPicks, calculateKellyStake, formatOdds, getOddEmoji, riskBadge, chatWithAi, renderMarkdown } from './aiPicks.js';
 import { addBet, getBets, settleBet, getBetStats, calculatePayout, calculateProfit, formatCurrency } from './betTracking.js';
 import { startLiveOddsSync, stopLiveOddsSync, getAllLiveGames, getMovementIcon, formatMovement, isSharpMovement } from './liveOdds.js';
 import { getCurrentUserProfile, getUserProfile, updateUserProfile, getUserStats, getLeaderboard, getAvatarInitials, uploadAvatar } from './userProfiles.js';
@@ -243,80 +243,186 @@ function mountTeamPlaceholder(main, teamId) {
 
 let aiPicksLoading = false;
 
-let lastAiResponse = null; // last full Edge Function response (for correct score table, stats)
+const CHAT_STORAGE_KEY = 'nogame_aipicks_chat_v1';
+let chatHistory = loadChatHistory();
+let chatSending = false;
+
+function loadChatHistory() {
+  try {
+    const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+function saveChatHistory() {
+  try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory.slice(-30))); } catch {}
+}
 
 async function renderAiPicks() {
   const main = document.getElementById('pageMain');
   if (!main) return;
 
   main.innerHTML = `
-    <div class="ai-picks-container">
-      <div class="ai-picks-header">
-        <div class="ai-picks-title">
-          <span>✨ AI Picks</span>
+    <div class="ai-chat-container">
+      <div class="ai-chat-header">
+        <div class="ai-chat-title">
+          <span>✨ Chat with Engie</span>
+          <span class="ai-chat-sub">Ask about today's value picks, line shops, matchups…</span>
         </div>
+        <button id="chatClearBtn" class="btn-chat-clear" type="button" title="Clear conversation">🗑️</button>
       </div>
 
-      <div class="ai-prompt-panel">
-        <label class="ai-prompt-label" for="ap_custom">💬 What kind of picks do you want?</label>
-        <textarea id="ap_custom" rows="3" placeholder="e.g. Find me NFL road underdogs with line-shop edge, or '3 safest soccer picks for tonight'…"></textarea>
-        <div class="ai-prompt-actions">
-          <button id="generatePicksBtn" class="btn-refresh-ai" type="button" ${aiPicksLoading ? 'disabled' : ''}>
-            ${aiPicksLoading ? '<span class="refresh-spinner"></span> Generating…' : '✨ Generate Picks'}
-          </button>
-        </div>
-      </div>
+      <div id="chatMessages" class="ai-chat-messages"></div>
 
-      <div id="aiPicksContent">Loading picks…</div>
-
-      <div id="correctScoreSection"></div>
+      <form id="chatForm" class="ai-chat-input-row" autocomplete="off">
+        <textarea
+          id="chatInput"
+          class="ai-chat-input"
+          rows="1"
+          placeholder="Ask Engie… e.g. 'Any value picks for tonight's NBA games?'"
+          ${chatSending ? 'disabled' : ''}></textarea>
+        <button id="chatSendBtn" class="ai-chat-send" type="submit" ${chatSending ? 'disabled' : ''}>
+          ${chatSending ? '…' : '➤'}
+        </button>
+      </form>
     </div>
   `;
 
-  const contentEl = document.getElementById('aiPicksContent');
-  const csEl = document.getElementById('correctScoreSection');
-  const generateBtn = document.getElementById('generatePicksBtn');
+  const msgsEl = document.getElementById('chatMessages');
+  const inputEl = document.getElementById('chatInput');
+  const formEl = document.getElementById('chatForm');
+  const clearBtn = document.getElementById('chatClearBtn');
 
-  generateBtn.addEventListener('click', async () => {
-    if (aiPicksLoading) return;
-    aiPicksLoading = true;
-    generateBtn.disabled = true;
-    generateBtn.innerHTML = '<span class="refresh-spinner"></span> Generating…';
-    contentEl.innerHTML = '<div class="picks-empty">Asking Engie for picks… this can take 20-40 seconds.</div>';
+  renderChatMessages(msgsEl);
 
-    try {
-      const params = collectPromptParams();
-      lastAiResponse = await refreshAiPicks(params);
-      renderAiResponse(contentEl, csEl, lastAiResponse);
-    } catch (err) {
-      contentEl.innerHTML = `<div class="rate-limit-msg">${err.message}</div>`;
-    } finally {
-      aiPicksLoading = false;
-      generateBtn.disabled = false;
-      generateBtn.innerHTML = '✨ Generate Picks';
+  // Auto-grow textarea
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+  });
+
+  // Enter to send, Shift+Enter for newline
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      formEl.requestSubmit();
     }
   });
 
-  // Initial render: show cached picks if any
-  const cached = await getAiPicks();
-  if (cached.length > 0) {
-    contentEl.innerHTML = renderPicksList(cached);
-    wirePickActions(contentEl);
-  } else {
-    contentEl.innerHTML = `
-      <div class="picks-empty">
-        <div class="picks-empty-icon">🎯</div>
-        <div class="picks-empty-text">
-          No picks yet. Adjust the prompt above and click <strong>Generate Picks</strong>.
-        </div>
-      </div>`;
+  formEl.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (chatSending) return;
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    chatHistory.push({ role: 'user', content: text, ts: Date.now() });
+    saveChatHistory();
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    chatSending = true;
+
+    renderChatMessages(msgsEl, /*typing*/true);
+    setChatLock(true);
+
+    try {
+      const apiMessages = chatHistory.map(m => ({ role: m.role, content: m.content }));
+      const resp = await chatWithAi(apiMessages);
+      chatHistory.push({
+        role: 'assistant',
+        content: resp.reply || '(no response)',
+        ts: Date.now(),
+        stats: resp.stats,
+      });
+      saveChatHistory();
+    } catch (err) {
+      chatHistory.push({
+        role: 'assistant',
+        content: `⚠️ ${err.message || 'Something went wrong.'}`,
+        ts: Date.now(),
+        error: true,
+      });
+      saveChatHistory();
+    } finally {
+      chatSending = false;
+      setChatLock(false);
+      renderChatMessages(msgsEl);
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if (!confirm('Clear this conversation?')) return;
+    chatHistory = [];
+    saveChatHistory();
+    renderChatMessages(msgsEl);
+  });
+}
+
+function setChatLock(locked) {
+  const input = document.getElementById('chatInput');
+  const send = document.getElementById('chatSendBtn');
+  if (input) input.disabled = locked;
+  if (send) {
+    send.disabled = locked;
+    send.textContent = locked ? '…' : '➤';
   }
 }
 
-function collectPromptParams() {
-  return {
-    custom_prompt: document.getElementById('ap_custom')?.value ?? '',
-  };
+function renderChatMessages(container, typing = false) {
+  if (!container) return;
+  if (chatHistory.length === 0 && !typing) {
+    container.innerHTML = `
+      <div class="ai-chat-welcome">
+        <div class="ai-chat-welcome-icon">💬</div>
+        <div class="ai-chat-welcome-text">
+          Hi — I'm <strong>Engie</strong>. I track Bet365 vs market-average odds across NFL, NBA, MLB, NHL, EPL, UCL, MLS, MMA.<br><br>
+          Ask me things like:
+          <ul>
+            <li>"What are tonight's best value plays?"</li>
+            <li>"Any NFL underdogs with line-shop edge?"</li>
+            <li>"3 safest soccer picks today"</li>
+            <li>"Why is the Lakers line moving?"</li>
+          </ul>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const html = chatHistory.map(m => {
+    if (m.role === 'user') {
+      return `
+        <div class="ai-msg ai-msg--user">
+          <div class="ai-msg-bubble">${escapeHtml(m.content)}</div>
+        </div>`;
+    }
+    return `
+      <div class="ai-msg ai-msg--assistant ${m.error ? 'ai-msg--error' : ''}">
+        <div class="ai-msg-avatar">✨</div>
+        <div class="ai-msg-bubble">
+          ${renderMarkdown(m.content)}
+          ${m.stats ? `<div class="ai-msg-stats">Scanned ${m.stats.total_outcomes_scanned} markets — ${m.stats.positive_edge} with Bet365 edge</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  const typingBubble = typing ? `
+    <div class="ai-msg ai-msg--assistant">
+      <div class="ai-msg-avatar">✨</div>
+      <div class="ai-msg-bubble ai-msg-bubble--typing">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </div>` : '';
+
+  container.innerHTML = html + typingBubble;
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
 }
 
 function renderAiResponse(contentEl, csEl, resp) {
