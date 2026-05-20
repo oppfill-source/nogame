@@ -1,0 +1,149 @@
+Area,Item,Status,Priority,Notes
+Foundation,GitHub repo + GitHub Pages deployment,Done,,Custom domain nogame.dev with CNAME
+Foundation,Landing page (index.html),Done,,Public marketing page
+Foundation,Auth modal (sign in only),Done,,Sign-up flow intentionally removed
+Foundation,Supabase email/password auth,Done,,axlybeznzibovvqkllzq.supabase.co
+Foundation,Hash-based SPA router,Done,,Routes: home / game / league / team / user
+Foundation,Auth guard on app.html,Done,,Redirects unauthenticated users to landing
+Foundation,Cache-busting versioned scripts,Done,,main.js?v=N pattern
+Foundation,Mobile responsive layout,Partial,Medium,Profile + chat tuned. Other views could use a deeper pass
+Foundation,CLAUDE.md project docs,Done,,Pre-existing
+Foundation,Embedded worktree submodule removed,Done,,Was silently breaking Pages deploys
+,,,,
+AI Picks & Chat,Edge Function generate-ai-picks (Bet365 edge),Done,,Deployed to Supabase
+AI Picks & Chat,Edge Function ai-picks-chat (conversational),Done,,Deployed to Supabase
+AI Picks & Chat,Bet365 vs market-avg edge calculation,Done,,Pure positive-edge filter before Claude sees candidates
+AI Picks & Chat,Neutral / no-edge handling,Done,,Markets within ±0.5% marked neutral; never treated as failed
+AI Picks & Chat,Live odds fetched per chat turn,Done,,7 sports: NFL/NBA/MLB/NHL/EPL/UCL/MLS/MMA
+AI Picks & Chat,Conversational chat UI (bubbles),Done,,localStorage persisted; clear button; typing indicator
+AI Picks & Chat,Light markdown rendering,Done,,bold/italic/code/lists/links + HTML escape
+AI Picks & Chat,Rate limit (8s chat / 5 min picks),Done,,Backed by profiles.last_chat_request / last_ai_request
+AI Picks & Chat,ANTHROPIC_API_KEY secret,Done,,SET. Must be rotated (was pasted in transcript)
+AI Picks & Chat,ODDS_API_KEY secret,Done,,Was already set
+AI Picks & Chat,Correct Score odds raw table,Done,,Wired in generate-ai-picks; not yet shown in chat
+AI Picks & Chat,Correct Score AI selection logic,TODO,Medium,Deferred per spec — needs sport-specific factors
+AI Picks & Chat,Save picks from chat into ai_picks table,TODO,Medium,Currently chat replies are ephemeral
+AI Picks & Chat,Render pick cards inline in chat,TODO,Medium,Claude could emit <picks>JSON</picks> blocks
+AI Picks & Chat,One-click 'Track this bet' from chat reply,TODO,High,Bridge chat → bets table
+AI Picks & Chat,Cost monitoring + budget alerts,TODO,High,$5 Anthropic credit; no usage visibility
+,,,,
+Bet Tracking,bets table + RLS,Done,,Owner-only writes
+Bet Tracking,Add Bet modal with payout calculator,Done,,
+Bet Tracking,Bet history list with filters,Done,,Status / sport / bookmaker
+Bet Tracking,Settle bet (won/lost/push),Done,,
+Bet Tracking,Stats dashboard,Done,,6 stat cards
+Bet Tracking,Payout calculator (American odds),Done,,Handles +/- correctly
+Bet Tracking,Quick-add from AI chat,TODO,High,See AI Picks row above
+Bet Tracking,CSV export of bet history,TODO,Low,
+,,,,
+Live Odds,liveOdds.js polling every 10s,Done,,
+Live Odds,Sharp movement detection,Done,,≥5 pts triggers badge
+Live Odds,Movement badges (📈/📉),Done,,
+Live Odds,Live game card UI with shimmer,Done,,
+Live Odds,Only poll when user is on live view,TODO,Medium,Currently always polls when started — wastes Odds API quota
+Live Odds,WebSocket / SSE instead of polling,Idea,Low,Would require backend support
+,,,,
+Community,picks / pick_likes / pick_comments / follows tables,Done,,RLS enabled
+Community,Community feed (All / Following tabs),Done,,
+Community,Add Pick modal,Done,,
+Community,Like / unlike,Done,,
+Community,Comments with real-time updates,Done,,Supabase Realtime subscriptions
+Community,Follow / unfollow,Done,,
+Community,Author name → public profile,Done,,Wired in Profile v2
+Community,Notify on comment-on-my-pick,Partial,Medium,Preference toggle exists but no push sender wired
+Community,Notify on new follower,Partial,Medium,Same
+Community,Share existing tracked bet as community pick,TODO,Medium,
+,,,,
+Profile v2,Tabbed view Overview/Stats/Activity/Settings,Done,,
+Profile v2,Public profile at /#user/<id>,Done,,No Settings tab visible to others
+Profile v2,Display name + bio fields,Done,,Migration 011
+Profile v2,Avatar upload,Done,,Needs 'avatars' Supabase storage bucket — VERIFY
+Profile v2,Email change,Done,,Supabase Auth handles confirmation flow
+Profile v2,Password change,Done,,Min 8 chars
+Profile v2,Favorite sports chip selector,Done,,
+Profile v2,Notification preference toggles,Partial,Medium,Stored only — push sender not wired
+Profile v2,Theme dropdown (dark/light),Partial,Low,Only dark is fully styled
+Profile v2,Light theme CSS,TODO,Low,Add a [data-theme=light] variable set
+Profile v2,Follow button on public profiles,Done,,
+Profile v2,Equity curve SVG chart,Done,,
+Profile v2,Activity timeline,Done,,Merged bets + picks + comments
+Profile v2,Advanced metrics (Sharpe / drawdown / streaks),Done,,
+Profile v2,By-sport / by-bookmaker breakdowns,Done,,
+Profile v2,Share profile URL copy,Done,,
+Profile v2,Username uniqueness check client-side,TODO,Medium,DB has unique constraint but UI shows generic error
+Profile v2,Delete account self-service,TODO,Low,
+Profile v2,Two-factor auth,TODO,Low,
+,,,,
+Leaderboard,Three metric tabs (ROI/Profit/Win Rate),Done,,
+Leaderboard,Top 50 users by metric,Done,,
+Leaderboard,Gold/Silver/Bronze rank badges,Done,,
+Leaderboard,Rows link to public profile,Done,,
+Leaderboard,Pagination beyond top 50,TODO,Low,
+,,,,
+Analytics,Equity curve chart,Done,,Standalone view + duplicated in profile
+Analytics,Sharpe ratio / max drawdown,Done,,
+Analytics,Per-sport / per-bookmaker breakdown,Done,,
+Analytics,Date range filters (All/7d/30d/90d),Done,,
+Analytics,Win/Loss/Push pie chart,Done,,
+Analytics,Sortable columns in breakdown tables,TODO,Low,
+Analytics,Export charts as PNG,Idea,Low,
+,,,,
+Sportsbooks,Major US books integration,Done,,DraftKings/FanDuel/BetMGM/Caesars/ESPN BET
+Sportsbooks,PlayNow.com integration,Done,,
+Sportsbooks,Bet365 integration,Done,,Reference book for AI edge logic
+Sportsbooks,PointsBet/Bovada/etc.,Done,,
+Sportsbooks,Deep-link to open bet at sportsbook,TODO,Medium,Open in app / web URL
+Sportsbooks,Affiliate link tracking,TODO,Medium,
+,,,,
+Database / Infra,11 migrations applied,Done,,
+Database / Infra,Edge Function generate-ai-picks,Deployed,,v2 with Bet365 edge logic
+Database / Infra,Edge Function ai-picks-chat,Deployed,,Conversational
+Database / Infra,Edge Function chat-agent (legacy),Exists,,1294 lines; not used in current UI — DEAD CODE candidate
+Database / Infra,Edge Function send-push-notification,Exists,,Not wired into chat / pick generation
+Database / Infra,Edge Function odds-proxy,Exists,,Verify still in use
+Database / Infra,Edge Function send-notifications,Exists,,Verify still in use
+Database / Infra,Supabase storage bucket 'avatars',Unknown,High,VERIFY exists with public read + auth write
+Database / Infra,Rotate ANTHROPIC_API_KEY,TODO,High,Was pasted in chat — must be revoked + reissued
+,,,,
+Phase 3 (skipped),Bankroll Management - deposit/withdraw,TODO,Medium,User explicitly skipped Phase 3 earlier
+Phase 3 (skipped),Bankroll transaction history,TODO,Medium,
+Phase 3 (skipped),Kelly calc with live bankroll context,TODO,Medium,
+,,,,
+Notifications,Push token capture on sign-in,Partial,High,profiles.push_token exists; not collected client-side
+Notifications,Send push on high-value AI pick,TODO,Medium,Function exists but not invoked from generate-ai-picks
+Notifications,Send push on comment on my pick,TODO,Medium,
+Notifications,Send push on new follower,TODO,Medium,
+Notifications,Web Push (browser) implementation,TODO,Medium,Currently only Expo push set up
+Notifications,Email digest of weekly performance,Idea,Low,
+,,,,
+Onboarding & UX,Onboarding flow for first sign-in,TODO,Medium,Empty profile right now — should walk user through setup
+Onboarding & UX,Help / FAQ page,TODO,Low,
+Onboarding & UX,Responsible gambling tools (limits / self-exclude),TODO,High,Compliance — important for any real launch
+Onboarding & UX,Loading skeletons,TODO,Low,Currently just 'Loading…' text
+Onboarding & UX,Empty-state illustrations,Idea,Low,
+Onboarding & UX,Tooltips on metric labels,TODO,Low,Sharpe / Max Drawdown / Kelly — define them for users
+,,,,
+Auth options,Sign in with Google,TODO,Medium,
+Auth options,Sign in with Apple,TODO,Low,
+Auth options,Magic-link sign-in,TODO,Low,
+Auth options,Re-add sign-up flow,TODO,High,Currently sign-in only — blocks new users
+,,,,
+SEO & Marketing,Open Graph tags,Partial,Medium,index.html has some; app.html doesn't
+SEO & Marketing,Sitemap.xml,TODO,Low,
+SEO & Marketing,robots.txt,TODO,Low,
+SEO & Marketing,Blog / content pages,Idea,Low,
+,,,,
+Tech debt,main.js is 2200+ lines,Partial,Medium,Started splitting (profileView.js). More extraction needed
+Tech debt,Unused legacy renderUserProfile in main.js,TODO,Low,Safe to delete now that profileView.js exists
+Tech debt,Unused legacy chat-agent Edge Function,TODO,Low,Confirm not used then delete
+Tech debt,Duplicate equity-curve code (analytics + profile),TODO,Low,Extract shared chart component
+Tech debt,No automated tests,TODO,Medium,Add at least smoke tests for Edge Functions
+Tech debt,No linting configured,TODO,Low,
+Tech debt,Hardcoded Supabase URL in client,Partial,Low,Should come from env at build time
+,,,,
+Future / Ideas,Mobile native app (Expo),Idea,,React Native scaffolding partially exists per CLAUDE.md
+Future / Ideas,Parlay builder UI,Idea,,User can ask Engie now but no dedicated UI
+Future / Ideas,Bankroll graph over time,Idea,,
+Future / Ideas,Custom Engie personalities (sharp / casual / risk-tolerant),Idea,,
+Future / Ideas,Bet exchange odds (Betfair / Smarkets),Idea,,
+Future / Ideas,Crypto bookmakers,Idea,,
