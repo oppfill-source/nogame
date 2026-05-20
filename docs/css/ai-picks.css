@@ -1,53 +1,36 @@
 /* ── AI Picks Views ──────────────────────────────────────────────────────── */
 
-/* Prompt panel */
+/* Prompt panel (conversational) */
 .ai-prompt-panel {
   background: var(--elevated, #27272A);
   border: 1px solid var(--border, #3F3F46);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 16px;
   margin-bottom: 14px;
+  display: grid;
+  gap: 10px;
 }
-.ai-prompt-summary {
-  cursor: pointer;
+.ai-prompt-label {
   font-weight: 700;
   color: var(--text, #FAFAFA);
   font-size: 0.95rem;
-  user-select: none;
-  outline: none;
 }
-.ai-prompt-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-top: 14px;
-}
-.ai-prompt-field { display: grid; gap: 4px; }
-.ai-prompt-field--wide { grid-column: 1 / -1; }
-.ai-prompt-field label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-muted, #71717A);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.ai-prompt-field select,
-.ai-prompt-field input,
-.ai-prompt-field textarea {
+.ai-prompt-panel textarea {
   background: var(--bg, #09090B);
   border: 1px solid var(--border, #3F3F46);
   color: var(--text, #FAFAFA);
   border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 0.9rem;
+  padding: 10px 12px;
+  font-size: 0.95rem;
   font-family: inherit;
+  resize: vertical;
+  min-height: 64px;
 }
-.ai-prompt-field select:focus,
-.ai-prompt-field input:focus,
-.ai-prompt-field textarea:focus {
+.ai-prompt-panel textarea:focus {
   outline: none;
   border-color: var(--green, #22C55E);
 }
+.ai-prompt-actions { display: flex; justify-content: flex-end; }
 
 /* Bet365 edge pills inside a pick card */
 .pick-edge-row {

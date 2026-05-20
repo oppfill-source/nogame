@@ -257,83 +257,15 @@ async function renderAiPicks() {
         </div>
       </div>
 
-      <details class="ai-prompt-panel" open>
-        <summary class="ai-prompt-summary">⚙️ Prompt &amp; Filters</summary>
-        <div class="ai-prompt-grid">
-          <div class="ai-prompt-field">
-            <label>Sport</label>
-            <select id="ap_sport">
-              <option value="all">All major sports</option>
-              <option value="americanfootball_nfl">NFL</option>
-              <option value="basketball_nba">NBA</option>
-              <option value="baseball_mlb">MLB</option>
-              <option value="icehockey_nhl">NHL</option>
-              <option value="soccer_epl">EPL (Soccer)</option>
-              <option value="soccer_usa_mls">MLS (Soccer)</option>
-              <option value="soccer_uefa_champs_league">UCL (Soccer)</option>
-              <option value="mma_mixed_martial_arts">MMA</option>
-            </select>
-          </div>
-          <div class="ai-prompt-field">
-            <label>Market type</label>
-            <select id="ap_market">
-              <option value="all">All</option>
-              <option value="moneyline">Moneyline</option>
-              <option value="spread">Spread</option>
-              <option value="total">Over/Under</option>
-            </select>
-          </div>
-          <div class="ai-prompt-field">
-            <label>Risk level</label>
-            <select id="ap_risk">
-              <option value="conservative">Conservative</option>
-              <option value="balanced" selected>Balanced</option>
-              <option value="aggressive">Aggressive</option>
-            </select>
-          </div>
-          <div class="ai-prompt-field">
-            <label>Strategy</label>
-            <select id="ap_strategy">
-              <option value="value" selected>Value picks</option>
-              <option value="safest">Safest picks</option>
-              <option value="underdog">Underdog picks</option>
-              <option value="parlay">Parlay builder</option>
-            </select>
-          </div>
-          <div class="ai-prompt-field">
-            <label># Picks (1–10)</label>
-            <input id="ap_num" type="number" min="1" max="10" value="5" />
-          </div>
-          <div class="ai-prompt-field">
-            <label>Min confidence %</label>
-            <input id="ap_minconf" type="number" min="40" max="95" value="55" />
-          </div>
-          <div class="ai-prompt-field">
-            <label>Odds range (American)</label>
-            <div style="display:flex;gap:6px">
-              <input id="ap_oddsmin" type="number" placeholder="-300" style="width:50%" />
-              <input id="ap_oddsmax" type="number" placeholder="+400" style="width:50%" />
-            </div>
-          </div>
-          <div class="ai-prompt-field">
-            <label>Explanation detail</label>
-            <select id="ap_detail">
-              <option value="brief">Brief</option>
-              <option value="balanced" selected>Balanced</option>
-              <option value="detailed">Detailed</option>
-            </select>
-          </div>
-          <div class="ai-prompt-field ai-prompt-field--wide">
-            <label>Custom instruction (optional)</label>
-            <textarea id="ap_custom" rows="2" placeholder="e.g. Find me NFL road underdogs under +200 with line-shop edge…"></textarea>
-          </div>
-          <div class="ai-prompt-field ai-prompt-field--wide" style="align-items:flex-end;display:flex;justify-content:flex-end">
-            <button id="generatePicksBtn" class="btn-refresh-ai" type="button" ${aiPicksLoading ? 'disabled' : ''}>
-              ${aiPicksLoading ? '<span class="refresh-spinner"></span> Generating…' : '✨ Generate Picks'}
-            </button>
-          </div>
+      <div class="ai-prompt-panel">
+        <label class="ai-prompt-label" for="ap_custom">💬 What kind of picks do you want?</label>
+        <textarea id="ap_custom" rows="3" placeholder="e.g. Find me NFL road underdogs with line-shop edge, or '3 safest soccer picks for tonight'…"></textarea>
+        <div class="ai-prompt-actions">
+          <button id="generatePicksBtn" class="btn-refresh-ai" type="button" ${aiPicksLoading ? 'disabled' : ''}>
+            ${aiPicksLoading ? '<span class="refresh-spinner"></span> Generating…' : '✨ Generate Picks'}
+          </button>
         </div>
-      </details>
+      </div>
 
       <div id="aiPicksContent">Loading picks…</div>
 
@@ -382,22 +314,8 @@ async function renderAiPicks() {
 }
 
 function collectPromptParams() {
-  const v = (id) => document.getElementById(id)?.value;
-  const n = (id) => {
-    const x = parseFloat(v(id));
-    return Number.isFinite(x) ? x : undefined;
-  };
   return {
-    sport:              v('ap_sport'),
-    market_type:        v('ap_market'),
-    risk_level:         v('ap_risk'),
-    strategy:           v('ap_strategy'),
-    num_picks:          n('ap_num') ?? 5,
-    min_confidence:     n('ap_minconf') ?? 55,
-    odds_min:           n('ap_oddsmin'),
-    odds_max:           n('ap_oddsmax'),
-    explanation_detail: v('ap_detail'),
-    custom_prompt:      v('ap_custom') ?? '',
+    custom_prompt: document.getElementById('ap_custom')?.value ?? '',
   };
 }
 
