@@ -37,7 +37,8 @@
       </div>
 
       <div class="ln-nav__actions">
-        <a href="#" class="btn btn--sm btn--primary" data-auth-trigger="signin">Sign In</a>
+        <a href="#" class="btn btn--sm btn--ghost" data-auth-trigger="signin">Sign In</a>
+        <a href="#" class="btn btn--sm btn--primary" data-auth-trigger="signup">Sign Up Free</a>
       </div>
 
       <button class="ln-nav__burger" id="lnBurger" aria-label="Menu" type="button">
@@ -49,7 +50,8 @@
       <a href="#" data-auth-trigger="signin" onclick="closeMobile(); return false">Live Scores</a>
       <a href="#features" onclick="closeMobile()">Features</a>
       <a href="#how-it-works" onclick="closeMobile()">How It Works</a>
-      <a href="#" class="btn btn--primary" data-auth-trigger="signin" onclick="closeMobile(); return false">Sign In</a>
+      <a href="#" onclick="closeMobile(); return false" data-auth-trigger="signin">Sign In</a>
+      <a href="#" class="btn btn--primary" data-auth-trigger="signup" onclick="closeMobile(); return false">Sign Up Free</a>
     </div>
   </nav>
 
@@ -78,12 +80,12 @@
         </p>
 
         <div class="ln-hero__ctas">
-          <a href="#" class="btn btn--primary btn--lg" data-auth-trigger="signin" onclick="return false">
+          <a href="#" class="btn btn--primary btn--lg" data-auth-trigger="signup" onclick="return false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
-            Open Live Scores
+            Get Started Free
           </a>
           <a href="#" class="btn btn--outline btn--lg" data-auth-trigger="signin">
             Sign In →
@@ -573,31 +575,65 @@
 
       <button class="auth-modal__close" id="authModalClose" aria-label="Close modal">&#x2715;</button>
 
-      <!-- Logo + title -->
+      <!-- Logo -->
       <div class="auth-modal__logo">
         <span class="auth-modal__logo-mark">N</span>
         NoGame
       </div>
+
+      <!-- Sign In / Sign Up tabs -->
+      <div class="auth-modal__tabs" role="tablist">
+        <button class="auth-modal__tab auth-modal__tab--active" id="tabSignIn" type="button" role="tab">Sign In</button>
+        <button class="auth-modal__tab" id="tabSignUp" type="button" role="tab">Create Account</button>
+      </div>
+
+      <!-- Dynamic title + sub -->
       <div class="auth-modal__title" id="authModalTitle">Welcome back</div>
-      <div class="auth-modal__sub" id="authModalSub">Sign in to access live scores and odds.</div>
+      <div class="auth-modal__sub" id="authModalSub">Sign in to access live scores and AI picks.</div>
 
       <!-- Message area (errors / success) -->
       <div class="auth-modal__msg" id="authMsg"></div>
 
       <!-- Form -->
       <form id="authForm" novalidate>
+
+        <!-- Display name — sign-up only -->
+        <div class="auth-modal__field" id="fieldDisplayName" style="display:none">
+          <label class="auth-modal__label" for="authDisplayName">Display Name</label>
+          <input class="auth-modal__input" type="text" id="authDisplayName"
+            placeholder="Your name or handle" autocomplete="name" maxlength="40" />
+        </div>
+
         <div class="auth-modal__field">
           <label class="auth-modal__label" for="authEmail">Email</label>
           <input class="auth-modal__input" type="email" id="authEmail"
             placeholder="you@example.com" required autocomplete="email" />
         </div>
+
         <div class="auth-modal__field">
           <label class="auth-modal__label" for="authPassword">Password</label>
           <input class="auth-modal__input" type="password" id="authPassword"
-            placeholder="••••••••" required autocomplete="current-password" minlength="6" />
+            placeholder="••••••••" required minlength="8" autocomplete="current-password" />
         </div>
+
+        <!-- Confirm password — sign-up only -->
+        <div class="auth-modal__field" id="fieldConfirmPassword" style="display:none">
+          <label class="auth-modal__label" for="authConfirmPassword">Confirm Password</label>
+          <input class="auth-modal__input" type="password" id="authConfirmPassword"
+            placeholder="••••••••" minlength="8" autocomplete="new-password" />
+        </div>
+
         <button class="btn btn--primary auth-modal__submit" type="submit" id="authSubmitBtn">Sign In</button>
       </form>
+
+      <!-- Toggle link -->
+      <p id="authToggleRow" style="margin-top:16px;text-align:center;font-size:.8rem;color:var(--text-muted)">
+        <span id="authToggleText">Don't have an account?</span>
+        <button type="button" id="authToggleBtn"
+          style="background:none;border:none;color:var(--green);font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;padding:0 0 0 4px;text-decoration:underline;text-underline-offset:2px">
+          Sign Up Free →
+        </button>
+      </p>
 
     </div>
   </div>
@@ -618,32 +654,137 @@
       if (session) window.location.replace('app.html');
     });
 
-    const modal     = document.getElementById('authModal');
-    const form      = document.getElementById('authForm');
-    const msgEl     = document.getElementById('authMsg');
-    const submitBtn = document.getElementById('authSubmitBtn');
+    // ── DOM refs ───────────────────────────────────────────────────────────────
+    const modal              = document.getElementById('authModal');
+    const form               = document.getElementById('authForm');
+    const msgEl              = document.getElementById('authMsg');
+    const submitBtn          = document.getElementById('authSubmitBtn');
+    const tabSignIn          = document.getElementById('tabSignIn');
+    const tabSignUp          = document.getElementById('tabSignUp');
+    const fieldDisplayName   = document.getElementById('fieldDisplayName');
+    const fieldConfirmPw     = document.getElementById('fieldConfirmPassword');
+    const authToggleBtn      = document.getElementById('authToggleBtn');
+    const authToggleText     = document.getElementById('authToggleText');
+    const titleEl            = document.getElementById('authModalTitle');
+    const subEl              = document.getElementById('authModalSub');
+    const pwInput            = document.getElementById('authPassword');
 
-    function openModal() {
+    let mode = 'signin'; // 'signin' | 'signup'
+
+    // ── Mode switching ─────────────────────────────────────────────────────────
+    function switchMode(newMode) {
+      mode = newMode;
+      clearMsg();
+      form.reset();
+
+      const isSignUp = mode === 'signup';
+
+      // Tabs
+      tabSignIn.classList.toggle('auth-modal__tab--active', !isSignUp);
+      tabSignUp.classList.toggle('auth-modal__tab--active',  isSignUp);
+
+      // Extra fields
+      fieldDisplayName.style.display = isSignUp ? '' : 'none';
+      fieldConfirmPw.style.display   = isSignUp ? '' : 'none';
+
+      // Password autocomplete
+      pwInput.setAttribute('autocomplete', isSignUp ? 'new-password' : 'current-password');
+
+      // Copy
+      if (isSignUp) {
+        titleEl.textContent = 'Create your account';
+        subEl.textContent   = 'Free to join. No credit card required.';
+        submitBtn.textContent = 'Create Account';
+        authToggleText.textContent = 'Already have an account?';
+        authToggleBtn.textContent  = 'Sign In →';
+      } else {
+        titleEl.textContent = 'Welcome back';
+        subEl.textContent   = 'Sign in to access live scores and AI picks.';
+        submitBtn.textContent = 'Sign In';
+        authToggleText.textContent = "Don't have an account?";
+        authToggleBtn.textContent  = 'Sign Up Free →';
+      }
+
+      // Focus
+      const firstInput = isSignUp
+        ? document.getElementById('authDisplayName')
+        : document.getElementById('authEmail');
+      setTimeout(() => firstInput?.focus(), 60);
+    }
+
+    tabSignIn.addEventListener('click', () => switchMode('signin'));
+    tabSignUp.addEventListener('click', () => switchMode('signup'));
+    authToggleBtn.addEventListener('click', () => switchMode(mode === 'signin' ? 'signup' : 'signin'));
+
+    // ── Open / close ───────────────────────────────────────────────────────────
+    function openModal(initialMode = 'signin') {
       modal.hidden = false;
       document.body.style.overflow = 'hidden';
-      msgEl.textContent = '';
-      msgEl.className   = 'auth-modal__msg';
-      setTimeout(() => document.getElementById('authEmail')?.focus(), 60);
+      switchMode(initialMode);
     }
 
     function closeModal() {
       modal.hidden = true;
       document.body.style.overflow = '';
-      msgEl.textContent = '';
-      msgEl.className   = 'auth-modal__msg';
+      clearMsg();
     }
 
-    // ── Close handlers ─────────────────────────────────────────────────────────
+    function clearMsg() {
+      msgEl.textContent = '';
+      msgEl.className   = 'auth-modal__msg';
+      // Restore form + toggle row if they were hidden by the sign-up success state
+      form.style.display = '';
+      document.getElementById('authToggleRow').style.display = '';
+    }
+
+    function showError(text) {
+      msgEl.textContent = text;
+      msgEl.className   = 'auth-modal__msg auth-modal__msg--error';
+    }
+
+    function showSuccess(text) {
+      msgEl.textContent = text;
+      msgEl.className   = 'auth-modal__msg auth-modal__msg--success';
+    }
+
     document.getElementById('authModalClose').addEventListener('click', closeModal);
     document.getElementById('authModalBackdrop').addEventListener('click', closeModal);
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && !modal.hidden) closeModal();
     });
+
+    // ── Friendly error messages ────────────────────────────────────────────────
+    function friendlySignInError(error) {
+      const code = (error.code || '').toLowerCase();
+      const msg  = (error.message || '').toLowerCase();
+      if (code === 'invalid_credentials' || msg.includes('invalid login credentials') || msg.includes('invalid_credentials'))
+        return 'Incorrect email or password.';
+      if (msg.includes('email not confirmed'))
+        return 'Email not confirmed. Check your inbox for a confirmation link.';
+      if (msg.includes('too many') || error.status === 429)
+        return 'Too many attempts. Please wait a moment and try again.';
+      if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch'))
+        return 'Network error. Check your connection and try again.';
+      if (msg.includes('user not found') || msg.includes('no user found'))
+        return 'No account found with that email. Try signing up instead.';
+      return 'Sign in failed. Please try again.';
+    }
+
+    function friendlySignUpError(error) {
+      const code = (error.code || '').toLowerCase();
+      const msg  = (error.message || '').toLowerCase();
+      if (msg.includes('already registered') || msg.includes('user already exists') || code === 'user_already_exists')
+        return 'An account with that email already exists. Try signing in.';
+      if (msg.includes('password') && (msg.includes('weak') || msg.includes('short') || msg.includes('characters')))
+        return 'Password is too weak. Use at least 8 characters.';
+      if (msg.includes('invalid email') || msg.includes('valid email'))
+        return 'Please enter a valid email address.';
+      if (msg.includes('too many') || error.status === 429)
+        return 'Too many attempts. Please wait a moment and try again.';
+      if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch'))
+        return 'Network error. Check your connection and try again.';
+      return 'Sign up failed. Please try again.';
+    }
 
     // ── Form submit ────────────────────────────────────────────────────────────
     form.addEventListener('submit', async e => {
@@ -652,41 +793,77 @@
       const password = document.getElementById('authPassword').value;
       if (!email || !password) return;
 
-      submitBtn.disabled    = true;
-      submitBtn.textContent = 'Signing in…';
-      msgEl.textContent = '';
-      msgEl.className   = 'auth-modal__msg';
+      clearMsg();
+      submitBtn.disabled = true;
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        const code = (error.code || '').toLowerCase();
-        const msg  = (error.message || '').toLowerCase();
-        let friendly = 'Sign in failed. Please try again.';
-        if (code === 'invalid_credentials' || msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
-          friendly = 'Incorrect email or password.';
-        } else if (msg.includes('email not confirmed')) {
-          friendly = 'Email not confirmed. Check your inbox for a confirmation link.';
-        } else if (msg.includes('too many') || error.status === 429) {
-          friendly = 'Too many attempts. Please wait a moment and try again.';
-        } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch')) {
-          friendly = 'Network error. Check your connection and try again.';
-        } else if (msg.includes('user not found') || msg.includes('no user found')) {
-          friendly = 'No account found with that email address.';
+      // ── SIGN IN ──────────────────────────────────────────────────────────────
+      if (mode === 'signin') {
+        submitBtn.textContent = 'Signing in…';
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          showError(friendlySignInError(error));
+          submitBtn.disabled    = false;
+          submitBtn.textContent = 'Sign In';
+        } else {
+          window.location.replace('app.html');
         }
-        msgEl.textContent = friendly;
-        msgEl.className   = 'auth-modal__msg auth-modal__msg--error';
-        submitBtn.disabled    = false;
-        submitBtn.textContent = 'Sign In';
-      } else {
-        window.location.replace('app.html');
+        return;
       }
+
+      // ── SIGN UP ──────────────────────────────────────────────────────────────
+      const confirmPw   = document.getElementById('authConfirmPassword').value;
+      const displayName = document.getElementById('authDisplayName').value.trim();
+
+      if (password !== confirmPw) {
+        showError('Passwords do not match.');
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Create Account';
+        return;
+      }
+      if (password.length < 8) {
+        showError('Password must be at least 8 characters.');
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Create Account';
+        return;
+      }
+
+      submitBtn.textContent = 'Creating account…';
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name: displayName || email.split('@')[0] },
+        },
+      });
+
+      if (error) {
+        showError(friendlySignUpError(error));
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Create Account';
+        return;
+      }
+
+      // If Supabase returns a session immediately (email confirmation disabled) → go straight to app
+      if (data.session) {
+        window.location.replace('app.html');
+        return;
+      }
+
+      // Email confirmation required — show success state
+      form.style.display = 'none';
+      document.getElementById('authToggleRow').style.display = 'none';
+      showSuccess(`✓ Check your inbox! We sent a confirmation link to ${email}. Click it to activate your account, then sign in here.`);
+      submitBtn.disabled    = false;
+      submitBtn.textContent = 'Create Account';
     });
 
     // ── Wire all data-auth-trigger elements ────────────────────────────────────
     document.querySelectorAll('[data-auth-trigger]').forEach(el => {
       el.addEventListener('click', e => {
         e.preventDefault();
-        openModal();
+        const trigger = el.getAttribute('data-auth-trigger');
+        openModal(trigger === 'signup' ? 'signup' : 'signin');
       });
     });
   </script>

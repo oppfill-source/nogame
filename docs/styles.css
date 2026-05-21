@@ -80,6 +80,12 @@ img { max-width: 100%; display: block; }
   border: 1.5px solid var(--border);
 }
 .btn--outline:hover { border-color: var(--green); color: var(--green); }
+.btn--ghost {
+  background: transparent;
+  color: var(--text-sec);
+  border: 1.5px solid transparent;
+}
+.btn--ghost:hover { color: var(--text); border-color: var(--border); }
 .btn--dark {
   background: var(--elevated);
   color: var(--text);
