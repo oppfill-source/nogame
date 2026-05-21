@@ -205,6 +205,14 @@ Hard rules — never break:
 6. Add a brief responsibility note when recommending bets ("Bet responsibly. Past results don't predict future ones.").
 7. NEVER mention "candidate list" or "shortlist" as those terms — say "today's value plays" or "current Bet365 edges".
 
+PICK SAVING (machine use only — users never see this):
+When you explicitly recommend one or more specific picks in your reply, append this exact block at the VERY END of your response — after all text and disclaimers. It is stripped automatically before display; do NOT reference or explain it in your reply:
+<picks>[{"idx": 1, "reasoning": "brief reason why this edge is compelling"}]</picks>
+Rules for the block:
+- "idx" is the 1-based line number from the VALUE PLAYS list below.
+- Include only picks you actively recommend in THIS message (not previous turns).
+- Omit the block entirely when you are chatting, answering questions, or making no specific recommendations.
+
 Snapshot stats (current scan):
 - ${stats.total_outcomes_scanned} markets scanned across NFL/NBA/MLB/NHL/EPL/UCL/MLS/MMA
 - ${stats.positive_edge} markets where Bet365 has positive edge (value)
@@ -220,17 +228,81 @@ ${candTable}`;
       messages: messages.map(m => ({ role: m.role, content: String(m.content).slice(0, 4000) })),
     });
 
-    const reply = message.content
+    const rawReply = message.content
       .filter(c => c.type === "text")
       .map(c => (c as any).text)
       .join("\n");
+
+    // ── Extract and save any picks Claude recommended ───────────────────────
+    const picksBlockMatch = rawReply.match(/<picks>([\s\S]*?)<\/picks>/);
+    const reply = rawReply.replace(/<picks>[\s\S]*?<\/picks>/g, "").trimEnd();
+
+    const leagueToSport: Record<string, string> = {
+      NFL: "americanfootball_nfl",
+      NBA: "basketball_nba",
+      MLB: "baseball_mlb",
+      NHL: "icehockey_nhl",
+      EPL: "soccer_epl",
+      UCL: "soccer_uefa_champs_league",
+      MLS: "soccer_usa_mls",
+      MMA: "mma_mixed_martial_arts",
+    };
+
+    let savedPicks: any[] = [];
+    if (picksBlockMatch) {
+      try {
+        const picksData: { idx: number; reasoning: string }[] = JSON.parse(picksBlockMatch[1]);
+        const insertRows = picksData
+          .map((p) => {
+            const idx = Number(p.idx) - 1;
+            const e = shortlist[idx];
+            if (!e) return null;
+            const vr = e.edge_pct >= 5 ? 9 : e.edge_pct >= 3 ? 8 : e.edge_pct >= 1.5 ? 7 : 6;
+            const gameId = `${e.away.toLowerCase().replace(/\W+/g, "-")}_${e.home.toLowerCase().replace(/\W+/g, "-")}_${e.commence.slice(0, 10)}`;
+            const betType = e.market.toLowerCase().includes("spread") ? "spread"
+              : e.market.toLowerCase().includes("total") ? "total"
+              : "moneyline";
+            return {
+              game_id:          gameId,
+              sport:            leagueToSport[e.league] ?? "unknown",
+              league:           e.league,
+              home_team:        e.home,
+              away_team:        e.away,
+              commence_time:    e.commence,
+              selection:        e.selection,
+              bet_type:         betType,
+              market:           e.market,
+              recommended_odds: e.bet365_odds,
+              bookmaker_key:    "bet365",
+              value_rating:     vr,
+              reasoning:        String(p.reasoning ?? ""),
+              bet365_odds:      e.bet365_odds,
+              avg_market_odds:  e.avg_odds,
+              edge_pct:         e.edge_pct,
+              model_version:    "claude-sonnet-4-6",
+              expires_at:       new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
+            };
+          })
+          .filter(Boolean);
+
+        if (insertRows.length > 0) {
+          const { data } = await supabase
+            .from("ai_picks")
+            .insert(insertRows)
+            .select("id, away_team, home_team, selection, recommended_odds, edge_pct, league, bet_type");
+          savedPicks = data ?? [];
+        }
+      } catch (pickErr) {
+        console.warn("pick-save error:", pickErr);
+      }
+    }
 
     await supabase.from("profiles").update({
       last_chat_request: new Date().toISOString(),
     }).eq("id", user.id);
 
     return new Response(
-      JSON.stringify({ reply, stats, candidate_count: shortlist.length }),
+      JSON.stringify({ reply, picks_saved: savedPicks, stats, candidate_count: shortlist.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {

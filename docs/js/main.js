@@ -250,6 +250,12 @@ let aiPicksLoading = false;
 const CHAT_STORAGE_KEY = 'nogame_aipicks_chat_v1';
 let chatHistory = loadChatHistory();
 let chatSending = false;
+let pendingBetPrefill = null; // pick data waiting to pre-fill the Add Bet modal
+
+function leagueToSportValue(league) {
+  const map = { NFL: 'nfl', NBA: 'nba', MLB: 'mlb', NHL: 'nhl', EPL: 'soccer', UCL: 'soccer', MLS: 'soccer', MMA: 'mma' };
+  return map[(league || '').toUpperCase()] || '';
+}
 
 function loadChatHistory() {
   try {
@@ -337,6 +343,7 @@ async function renderAiPicks() {
         content: resp.reply || '(no response)',
         ts: Date.now(),
         stats: resp.stats,
+        picks_saved: resp.picks_saved || [],
       });
       saveChatHistory();
     } catch (err) {
@@ -399,12 +406,26 @@ function renderChatMessages(container, typing = false) {
           <div class="ai-msg-bubble">${escapeHtml(m.content)}</div>
         </div>`;
     }
+    const pickChips = (m.picks_saved && m.picks_saved.length > 0)
+      ? `<div class="ai-pick-chips">${m.picks_saved.map(p => `
+          <button class="ai-pick-chip" type="button"
+            data-game="${escapeAttr(p.away_team + ' @ ' + p.home_team)}"
+            data-sport="${escapeAttr(leagueToSportValue(p.league))}"
+            data-bet-type="${escapeAttr(p.bet_type || 'moneyline')}"
+            data-selection="${escapeAttr(p.selection)}"
+            data-odds="${escapeAttr(String(p.recommended_odds))}">
+            📥 <strong>${escapeHtml(p.away_team)} @ ${escapeHtml(p.home_team)}</strong>
+            &nbsp;·&nbsp;${escapeHtml(p.selection)}&nbsp;${p.recommended_odds > 0 ? '+' : ''}${p.recommended_odds}
+            <span class="ai-pick-chip__cta">Track →</span>
+          </button>`).join('')}</div>`
+      : '';
     return `
       <div class="ai-msg ai-msg--assistant ${m.error ? 'ai-msg--error' : ''}">
         <div class="ai-msg-avatar">✨</div>
         <div class="ai-msg-bubble">
           ${renderMarkdown(m.content)}
           ${m.stats ? `<div class="ai-msg-stats">Scanned ${m.stats.total_outcomes_scanned} markets — ${m.stats.positive_edge} with Bet365 edge</div>` : ''}
+          ${pickChips}
         </div>
       </div>`;
   }).join('');
@@ -419,6 +440,30 @@ function renderChatMessages(container, typing = false) {
 
   container.innerHTML = html + typingBubble;
   container.scrollTop = container.scrollHeight;
+  wirePickChips(container);
+}
+
+function wirePickChips(container) {
+  container.querySelectorAll('.ai-pick-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingBetPrefill = {
+        gameDesc:  btn.dataset.game,
+        sport:     btn.dataset.sport,
+        betType:   btn.dataset.betType,
+        selection: btn.dataset.selection,
+        odds:      btn.dataset.odds,
+      };
+      renderBetTracking();
+    });
+  });
+}
+
+function escapeAttr(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function escapeHtml(s) {
@@ -730,6 +775,20 @@ async function renderBetTracking() {
   addBtn.addEventListener('click', () => modal.hidden = false);
   cancelBtn.addEventListener('click', () => modal.hidden = true);
   closeBtn.addEventListener('click', () => modal.hidden = true);
+
+  // Pre-fill from a chat pick chip if one was clicked
+  if (pendingBetPrefill) {
+    const p = pendingBetPrefill;
+    pendingBetPrefill = null;
+    document.getElementById('gameDesc').value        = p.gameDesc  || '';
+    document.getElementById('sportSelect').value     = p.sport     || '';
+    document.getElementById('betTypeSelect').value   = p.betType   || 'moneyline';
+    document.getElementById('selectionInput').value  = p.selection || '';
+    document.getElementById('bookmakerSelect').value = 'bet365';
+    document.getElementById('oddsInput').value       = p.odds      || '';
+    document.getElementById('oddsInput').dispatchEvent(new Event('input'));
+    modal.hidden = false;
+  }
 
   // Wire up form
   const form = document.getElementById('addBetForm');
