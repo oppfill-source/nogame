@@ -48,6 +48,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.replace('index.html');
   });
 
+  // Check for first-time user — show onboarding overlay (non-blocking, app loads behind it)
+  getCurrentUserProfile().then(profile => {
+    if (profile && !profile.onboarded_at) showOnboarding(profile);
+  }).catch(() => {});
+
   renderSportsNav();
   bindSportsNav();
   mountLeftSidebar();
@@ -267,6 +272,160 @@ function loadChatHistory() {
 }
 function saveChatHistory() {
   try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory.slice(-30))); } catch {}
+}
+
+// ── First-time onboarding ─────────────────────────────────────────────────
+
+const OB_SPORTS = [
+  { key: 'nfl',    label: '🏈 NFL'    },
+  { key: 'nba',    label: '🏀 NBA'    },
+  { key: 'mlb',    label: '⚾ MLB'    },
+  { key: 'nhl',    label: '🏒 NHL'    },
+  { key: 'ncaaf',  label: '🏈 NCAAF'  },
+  { key: 'ncaab',  label: '🏀 NCAAB'  },
+  { key: 'soccer', label: '⚽ Soccer' },
+  { key: 'tennis', label: '🎾 Tennis' },
+  { key: 'mma',    label: '🥊 MMA'    },
+  { key: 'boxing', label: '🥊 Boxing' },
+];
+
+function showOnboarding(profile) {
+  // Build overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'onboardingOverlay';
+  overlay.className = 'onboarding-overlay';
+
+  const suggestedName = profile.display_name || profile.username || '';
+
+  overlay.innerHTML = `
+    <div class="onboarding-card">
+
+      <!-- Progress dots -->
+      <div class="onboarding-dots">
+        <div class="onboarding-dot onboarding-dot--active" id="obDot0"></div>
+        <div class="onboarding-dot" id="obDot1"></div>
+        <div class="onboarding-dot" id="obDot2"></div>
+      </div>
+
+      <!-- Step 0: Welcome + display name -->
+      <div class="onboarding-step" id="obStep0">
+        <div class="onboarding-icon">🎉</div>
+        <h2 class="onboarding-h2">Welcome to NoGame!</h2>
+        <p class="onboarding-sub">The sharpest odds comparison tool around. Let's get your account set up in 30 seconds.</p>
+        <div class="onboarding-field">
+          <label class="onboarding-label">What should we call you?</label>
+          <input class="onboarding-input" id="obDisplayName" type="text"
+            placeholder="Your name or handle" maxlength="40" autocomplete="off"
+            value="${escapeAttr(suggestedName)}" />
+        </div>
+        <button class="btn btn--primary btn--block" id="obNext0" type="button">Continue →</button>
+      </div>
+
+      <!-- Step 1: Pick sports -->
+      <div class="onboarding-step" id="obStep1" style="display:none">
+        <div class="onboarding-icon">🏆</div>
+        <h2 class="onboarding-h2">Which sports do you follow?</h2>
+        <p class="onboarding-sub">We'll show you the most relevant games and picks. Select all that apply.</p>
+        <div class="onboarding-sports-grid" id="obSportsGrid">
+          ${OB_SPORTS.map(s => `
+            <button class="ob-sport-chip" type="button" data-key="${s.key}">${s.label}</button>
+          `).join('')}
+        </div>
+        <p class="onboarding-err" id="obSportsErr" style="display:none">Select at least one sport to continue.</p>
+        <button class="btn btn--primary btn--block" id="obNext1" type="button">Continue →</button>
+      </div>
+
+      <!-- Step 2: All set -->
+      <div class="onboarding-step" id="obStep2" style="display:none">
+        <div class="onboarding-icon">✅</div>
+        <h2 class="onboarding-h2">You're all set!</h2>
+        <p class="onboarding-sub">Here's what you can do right now:</p>
+        <ul class="onboarding-tips">
+          <li>⚡ <strong>Browse live games</strong> — real-time scores across 10+ sports</li>
+          <li>💰 <strong>Compare odds</strong> — best price highlighted automatically across every major book</li>
+          <li>✨ <strong>Ask Engie</strong> — AI-powered picks based on live Bet365 edge data</li>
+          <li>📊 <strong>Track your bets</strong> — log every play and watch your ROI grow</li>
+        </ul>
+        <button class="btn btn--primary btn--block" id="obFinish" type="button">Start Exploring →</button>
+        <p class="onboarding-saving" id="obSaving" style="display:none">Saving your preferences…</p>
+      </div>
+
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let currentStep = 0;
+  let selectedSports = [];
+
+  // ── Step navigation ────────────────────────────────────────────────────────
+  function goToStep(n) {
+    document.getElementById(`obStep${currentStep}`).style.display = 'none';
+    document.getElementById(`obDot${currentStep}`).classList.remove('onboarding-dot--active');
+    currentStep = n;
+    document.getElementById(`obStep${currentStep}`).style.display = '';
+    document.getElementById(`obDot${currentStep}`).classList.add('onboarding-dot--active');
+  }
+
+  // ── Sport chip toggle ──────────────────────────────────────────────────────
+  overlay.querySelectorAll('.ob-sport-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.key;
+      if (selectedSports.includes(key)) {
+        selectedSports = selectedSports.filter(k => k !== key);
+        btn.classList.remove('ob-sport-chip--selected');
+      } else {
+        selectedSports.push(key);
+        btn.classList.add('ob-sport-chip--selected');
+      }
+      document.getElementById('obSportsErr').style.display = 'none';
+    });
+  });
+
+  // ── Button wiring ──────────────────────────────────────────────────────────
+  overlay.querySelector('#obNext0').addEventListener('click', () => {
+    goToStep(1);
+    // Focus first chip after transition
+    setTimeout(() => overlay.querySelector('.ob-sport-chip')?.focus(), 60);
+  });
+
+  overlay.querySelector('#obNext1').addEventListener('click', () => {
+    if (selectedSports.length === 0) {
+      document.getElementById('obSportsErr').style.display = '';
+      return;
+    }
+    goToStep(2);
+  });
+
+  overlay.querySelector('#obFinish').addEventListener('click', async () => {
+    const displayName = (document.getElementById('obDisplayName').value || '').trim();
+    const finishBtn = overlay.querySelector('#obFinish');
+    const savingEl  = overlay.querySelector('#obSaving');
+
+    finishBtn.disabled = true;
+    savingEl.style.display = '';
+
+    try {
+      await updateUserProfile({
+        display_name:  displayName || profile.username || null,
+        favorite_sports: selectedSports,
+        onboarded_at:  new Date().toISOString(),
+      });
+
+      // Update appbar display name
+      const userEl = document.getElementById('appbarUserEmail');
+      if (userEl && displayName) userEl.textContent = displayName;
+
+    } catch (err) {
+      console.warn('Onboarding save error:', err);
+      // Don't block the user — still dismiss
+    }
+
+    // Fade out overlay
+    overlay.style.transition = 'opacity .3s';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 320);
+  });
 }
 
 async function renderAiPicks() {
