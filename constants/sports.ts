@@ -15,6 +15,7 @@ export const SPORTS: SportConfig[] = [
   { key: "baseball_mlb", label: "MLB", short: "MLB", emoji: "⚾", group: "american" },
   { key: "icehockey_nhl", label: "NHL", short: "NHL", emoji: "🏒", group: "american" },
   // Soccer
+  { key: "soccer_fifa_world_cup", label: "World Cup", short: "World Cup", emoji: "⚽", group: "soccer" },
   { key: "soccer_usa_mls", label: "MLS", short: "MLS", emoji: "⚽", group: "soccer" },
   { key: "soccer_epl", label: "Premier League", short: "EPL", emoji: "⚽", group: "soccer" },
   { key: "soccer_uefa_champs_league", label: "Champions League", short: "UCL", emoji: "⚽", group: "soccer" },

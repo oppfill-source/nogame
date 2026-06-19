@@ -10,6 +10,7 @@ const ALL_SPORTS_FETCH = [
   "baseball_mlb",
   "icehockey_nhl",
   "americanfootball_nfl",
+  "soccer_fifa_world_cup",
   "soccer_usa_mls",
   "soccer_epl",
 ];
