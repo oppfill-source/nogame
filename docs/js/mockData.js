@@ -33,6 +33,7 @@ export const LEAGUES = [
   { id: 'nhl',         sportId: 'nhl',     name: 'NHL',                country: 'USA',   season: '2025-26' },
   { id: 'ncaaf',       sportId: 'ncaaf',   name: 'NCAA Football',      country: 'USA',   season: '2025'    },
   { id: 'ncaab-m',     sportId: 'ncaab',   name: 'NCAA Men\'s Basketball', country: 'USA', season: '2025-26' },
+  { id: 'fifa-wc',     sportId: 'soccer',  name: 'World Cup',          country: 'Intl',  season: '2026'    },
   { id: 'epl',         sportId: 'soccer',  name: 'Premier League',     country: 'England', season: '2025-26' },
   { id: 'laliga',      sportId: 'soccer',  name: 'La Liga',            country: 'Spain', season: '2025-26' },
   { id: 'ucl',         sportId: 'soccer',  name: 'Champions League',   country: 'Europe',season: '2025-26' },

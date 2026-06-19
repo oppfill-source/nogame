@@ -34,6 +34,7 @@ const SPORT_LABELS: Record<string, { league: string; correctScore: boolean }> = 
   basketball_ncaab:        { league: "NCAAB",      correctScore: false },
   baseball_mlb:            { league: "MLB",        correctScore: false },
   icehockey_nhl:           { league: "NHL",        correctScore: false },
+  soccer_fifa_world_cup:   { league: "World Cup",  correctScore: true  },
   soccer_epl:              { league: "EPL",        correctScore: true  },
   soccer_uefa_champs_league: { league: "UCL",      correctScore: true  },
   soccer_usa_mls:          { league: "MLS",        correctScore: true  },
@@ -48,6 +49,7 @@ const DEFAULT_SPORTS = [
   "basketball_nba",
   "baseball_mlb",
   "icehockey_nhl",
+  "soccer_fifa_world_cup",
   "soccer_epl",
 ];
 

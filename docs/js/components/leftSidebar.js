@@ -14,6 +14,7 @@ const PINNABLE_LEAGUES = [
   { id: 'nhl', name: 'NHL', icon: '🏒' },
   { id: 'ncaaf', name: 'NCAAF', icon: '🏈' },
   { id: 'ncaab-m', name: 'NCAAB', icon: '🏀' },
+  { id: 'fifa-wc', name: 'World Cup', icon: '⚽' },
   { id: 'epl', name: 'Premier League', icon: '⚽' },
   { id: 'laliga', name: 'La Liga', icon: '⚽' },
   { id: 'ucl', name: 'Champions League', icon: '⚽' },
