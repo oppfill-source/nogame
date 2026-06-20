@@ -13,6 +13,7 @@ const LEAGUE_PATHS = {
   laliga:    'soccer/esp.1',
   ucl:       'soccer/uefa.champions',
   mls:       'soccer/usa.1',
+  'fifa-wc': 'soccer/fifa.world',
 };
 
 const PATH_TO_SPORT = {
@@ -26,6 +27,7 @@ const PATH_TO_SPORT = {
   'soccer/esp.1':                       'soccer',
   'soccer/uefa.champions':              'soccer',
   'soccer/usa.1':                       'soccer',
+  'soccer/fifa.world':                  'soccer',
 };
 
 const _cache     = new Map(); // cacheKey → Game[]
