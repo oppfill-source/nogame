@@ -19,6 +19,7 @@ const ODDS_SPORT = {
   laliga:    'soccer_spain_la_liga',
   ucl:       'soccer_uefa_champs_league',
   mls:       'soccer_usa_mls',
+  'fifa-wc': 'soccer_fifa_world_cup',
 };
 
 const ESPN_PATH = {
@@ -33,6 +34,7 @@ const ESPN_PATH = {
   laliga:    'soccer/esp.1',
   ucl:       'soccer/uefa.champions',
   mls:       'soccer/usa.1',
+  'fifa-wc': 'soccer/fifa.world',
 };
 
 // Player prop market keys per sport
