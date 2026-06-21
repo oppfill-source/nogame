@@ -195,9 +195,12 @@ function renderOddsTabHTML(game, odds, isMock = false) {
   const { bestByGroup } = getBestOddsByMarket(odds, market);
   const fmt = state.oddsFormat;
 
+  const soccer3Way = game.sportId === 'soccer' && market === 'moneyline';
   const cols = market === 'total'
     ? [{ sel: 'over',  label: 'Over'  }, { sel: 'under', label: 'Under' }]
-    : [{ sel: 'away',  label: game.awayTeam.name }, { sel: 'home', label: game.homeTeam.name }];
+    : soccer3Way
+      ? [{ sel: 'away', label: game.awayTeam.name }, { sel: 'draw', label: 'Draw' }, { sel: 'home', label: game.homeTeam.name }]
+      : [{ sel: 'away', label: game.awayTeam.name }, { sel: 'home', label: game.homeTeam.name }];
 
   // Build rows from whatever books appear in the data (real or mock)
   const marketOdds = odds.filter(o => o.marketType === market);

@@ -208,6 +208,7 @@ export async function fetchRealOdds(game) {
             ? (out.name?.toLowerCase() === 'over' ? 'over' : 'under')
             : teamMatch(out.name, event.home_team) ? 'home'
             : teamMatch(out.name, event.away_team) ? 'away'
+            : out.name?.toLowerCase() === 'draw' ? 'draw'
             : null;
           if (!sel) continue;
           odds.push({

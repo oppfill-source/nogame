@@ -288,11 +288,23 @@ function generateOddsForGame(game) {
   const updatedAt = new Date(Date.now() - intBetween(rng, 30, 600) * 1000).toISOString();
 
   // Establish a "true" market the books vary slightly around.
-  // ML based on a notional home-favorite probability:
-  const homeProb = 0.35 + rng() * 0.3; // 0.35–0.65
-  const awayProb = 1 - homeProb - 0.04; // small vig
-  const baseHomeML = probToAmerican(homeProb);
-  const baseAwayML = probToAmerican(awayProb);
+  // ML based on a notional home-favorite probability. Soccer is a 3-way
+  // market (home / draw / away), so it also gets a draw line.
+  const isSoccer = game.sportId === 'soccer';
+  let homeProb, baseHomeML, baseAwayML, baseDrawML = null;
+  if (isSoccer) {
+    const drawProb  = 0.24 + rng() * 0.08;   // ~0.24–0.32
+    const homeShare = 0.35 + rng() * 0.40;   // home's share of the decisive (non-draw) result
+    const rest      = 1 - drawProb;
+    baseHomeML = probToAmerican(rest * homeShare + 0.03);        // +~3% vig per line
+    baseAwayML = probToAmerican(rest * (1 - homeShare) + 0.03);
+    baseDrawML = probToAmerican(drawProb + 0.03);
+    homeProb   = homeShare;                  // notional favouritism for the spread line
+  } else {
+    homeProb   = 0.35 + rng() * 0.3;         // 0.35–0.65
+    baseHomeML = probToAmerican(homeProb);
+    baseAwayML = probToAmerican(1 - homeProb - 0.04); // small vig
+  }
 
   // Spread: integer/half centered on the implied edge
   const baseSpread = Math.round((americanFavToSpread(homeProb)) * 2) / 2;
@@ -304,6 +316,7 @@ function generateOddsForGame(game) {
     const mlJitter = () => intBetween(rng, -8, 8);
     odds.push(makeOdd(game, book, 'moneyline', 'home', null, baseHomeML + mlJitter(), updatedAt));
     odds.push(makeOdd(game, book, 'moneyline', 'away', null, baseAwayML + mlJitter(), updatedAt));
+    if (isSoccer) odds.push(makeOdd(game, book, 'moneyline', 'draw', null, baseDrawML + mlJitter(), updatedAt));
 
     // Some books offer a slightly different spread line — mostly the same.
     const spreadLine = rng() > 0.85 ? baseSpread + (rng() > 0.5 ? 0.5 : -0.5) : baseSpread;
