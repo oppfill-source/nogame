@@ -328,6 +328,71 @@ export async function fetchGameStats(game) {
   }
 }
 
+// ── ESPN News ─────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch recent news articles for the game's league.
+ * @returns {Array}  ESPN article objects ({ headline, description, published, links, images, byline })
+ */
+export async function fetchNews(game) {
+  const path = ESPN_PATH[game.leagueId] ?? ESPN_PATH[game.sportId];
+  if (!path) return [];
+  try {
+    return await cached(`news:${game.leagueId ?? game.sportId}`, async () => {
+      const res = await timedFetch(`${ESPN}/${path}/news`, 8000);
+      if (!res.ok) throw new Error(`ESPN news ${res.status}`);
+      const data = await res.json();
+      return Array.isArray(data?.articles) ? data.articles : [];
+    });
+  } catch (err) {
+    console.warn('[detailApi] fetchNews:', err.message);
+    return [];
+  }
+}
+
+// ── ESPN Lineups / Injuries (both live inside the game summary) ────────────────
+
+/** Fetch (and cache) the ESPN game summary; shares the cache with fetchGameStats. */
+async function fetchSummary(game) {
+  const path    = ESPN_PATH[game.leagueId] ?? ESPN_PATH[game.sportId];
+  const eventId = espnId(game.id);
+  if (!path || !eventId) return null;
+  return cached(`stats:${game.id}`, async () => {
+    const res = await timedFetch(`${ESPN}/${path}/summary?event=${eventId}`, 8000);
+    if (!res.ok) throw new Error(`ESPN summary ${res.status}`);
+    return res.json();
+  });
+}
+
+/**
+ * Starting XI + bench per team (soccer) or active roster (other sports).
+ * @returns {Array}  roster objects ({ team, formation, homeAway, roster:[{athlete,position,starter,jersey}] })
+ */
+export async function fetchLineups(game) {
+  try {
+    const sum = await fetchSummary(game);
+    return Array.isArray(sum?.rosters) ? sum.rosters : [];
+  } catch (err) {
+    console.warn('[detailApi] fetchLineups:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Injury report groups per team. Empty for competitions ESPN doesn't cover
+ * (e.g. international soccer), in which case the tab shows a "none reported" note.
+ * @returns {Array}  injury groups ({ team, injuries:[...] })
+ */
+export async function fetchInjuries(game) {
+  try {
+    const sum = await fetchSummary(game);
+    return Array.isArray(sum?.injuries) ? sum.injuries : [];
+  } catch (err) {
+    console.warn('[detailApi] fetchInjuries:', err.message);
+    return [];
+  }
+}
+
 // ── ESPN H2H ──────────────────────────────────────────────────────────────────
 
 /**

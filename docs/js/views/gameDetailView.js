@@ -12,8 +12,8 @@ import { formatOddsInFormat, formatImpliedProb } from '../oddsFormat.js';
 import { state, setState } from '../state.js';
 import {
   fetchRealOdds, fetchPlayerProps, fetchGameStats,
-  fetchH2H, fetchStandings, PROP_LABEL,
-} from '../detailApi.js?v=4';
+  fetchH2H, fetchStandings, fetchNews, fetchLineups, fetchInjuries, PROP_LABEL,
+} from '../detailApi.js?v=5';
 
 const TABS = [
   { id: 'summary',   label: 'Summary'   },
@@ -698,6 +698,104 @@ function renderSummaryTab(game) {
     </div>`;
 }
 
+// ── News / Lineups / Injuries tabs ────────────────────────────────────────────
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+}
+
+function renderNewsTabHTML(game, articles) {
+  const list = (articles ?? []).filter(a => a && a.headline);
+  if (!list.length) {
+    return renderPlaceholderTab('📰', 'No news right now', 'Check back closer to kickoff for the latest articles.');
+  }
+  return `
+    <div class="detail-news" style="display:flex;flex-direction:column;gap:12px">
+      ${list.slice(0, 12).map(a => {
+        const img  = (a.images ?? [])[0]?.url;
+        const href = a.links?.web?.href;
+        const date = a.published ? new Date(a.published).toLocaleDateString([], { month:'short', day:'numeric' }) : '';
+        const inner = `
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            ${img ? `<img src="${esc(img)}" alt="" loading="lazy" style="width:96px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0">` : ''}
+            <div style="min-width:0">
+              <div style="font-size:.92rem;font-weight:700;color:var(--text);line-height:1.3">${esc(a.headline)}</div>
+              ${a.description ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:4px;line-height:1.4">${esc(a.description)}</div>` : ''}
+              <div style="font-size:.72rem;color:var(--text-muted);margin-top:6px">${esc(a.byline || 'ESPN')}${date ? ' · ' + date : ''}</div>
+            </div>
+          </div>`;
+        return href
+          ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer" style="display:block;padding:12px;background:var(--surface);border-radius:10px;text-decoration:none">${inner}</a>`
+          : `<div style="padding:12px;background:var(--surface);border-radius:10px">${inner}</div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderLineupsTabHTML(game, rosters) {
+  const teams = (rosters ?? []).filter(r => r && Array.isArray(r.roster) && r.roster.length);
+  if (!teams.length) {
+    return renderPlaceholderTab('📋', 'Lineups not announced yet', 'Starting lineups are usually posted about an hour before kickoff.');
+  }
+  // Away team first (left), home second (right) — matches the scoreboard layout.
+  teams.sort((a, b) => (a.homeAway === 'home') - (b.homeAway === 'home'));
+
+  const playerRow = p => {
+    const name = p.athlete?.displayName ?? p.athlete?.shortName ?? '—';
+    const pos  = p.position?.abbreviation ?? '';
+    const num  = p.jersey != null ? p.jersey : '';
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.85rem">
+        <span style="width:22px;text-align:right;color:var(--text-muted);font-variant-numeric:tabular-nums">${esc(num)}</span>
+        <span style="flex:1;color:var(--text);min-width:0">${esc(name)}</span>
+        ${pos ? `<span style="font-size:.7rem;color:var(--text-muted);font-weight:600">${esc(pos)}</span>` : ''}
+      </div>`;
+  };
+
+  return `
+    <div class="detail-lineups" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      ${teams.map(t => {
+        const starters = (t.roster ?? []).filter(p => p.starter);
+        const bench    = (t.roster ?? []).filter(p => !p.starter);
+        const main     = starters.length ? starters : (t.roster ?? []);
+        return `
+          <div style="min-width:0">
+            <div style="font-size:.9rem;font-weight:800;color:var(--text)">${esc(t.team?.displayName ?? '')}</div>
+            <div style="font-size:.72rem;color:var(--text-muted);margin:2px 0 8px">${t.formation ? 'Formation ' + esc(t.formation) : '&nbsp;'}</div>
+            ${starters.length ? `<div style="font-size:.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Starting XI</div>` : ''}
+            ${main.map(playerRow).join('')}
+            ${starters.length && bench.length ? `
+              <div style="font-size:.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 2px">Substitutes</div>
+              ${bench.map(playerRow).join('')}` : ''}
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderInjuriesTabHTML(game, groups) {
+  const teams = (groups ?? []).filter(g => g && Array.isArray(g.injuries) && g.injuries.length);
+  if (!teams.length) {
+    return renderPlaceholderTab('🏥', 'No injuries reported', 'No injury designations are published for this matchup.');
+  }
+  return `
+    <div class="detail-injuries" style="display:flex;flex-direction:column;gap:16px">
+      ${teams.map(t => `
+        <div>
+          <div style="font-size:.9rem;font-weight:800;color:var(--text);margin-bottom:6px">${esc(t.team?.displayName ?? '')}</div>
+          ${t.injuries.map(inj => {
+            const name   = inj.athlete?.displayName ?? '—';
+            const status = inj.status ?? inj.type?.description ?? '';
+            const detail = inj.details?.detail ?? inj.shortComment ?? inj.details?.type ?? '';
+            return `
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-sub);font-size:.85rem">
+                <span style="color:var(--text);min-width:0">${esc(name)}${detail ? ` <span style="color:var(--text-muted);font-size:.75rem">· ${esc(detail)}</span>` : ''}</span>
+                ${status ? `<span style="font-size:.72rem;font-weight:700;color:var(--amber);flex-shrink:0">${esc(status)}</span>` : ''}
+              </div>`;
+          }).join('')}
+        </div>
+      `).join('')}
+    </div>`;
+}
+
 // ── Placeholder tabs ──────────────────────────────────────────────────────────
 
 function renderPlaceholderTab(icon, title, sub) {
@@ -716,10 +814,10 @@ function renderTabContent(game) {
     case 'odds':
     case 'stats':
     case 'h2h':
-    case 'standings': return renderLoadingSkeleton();
-    case 'lineups':   return renderPlaceholderTab('📋', 'Lineups coming soon', 'Starting rosters and depth charts will appear here.');
-    case 'news':      return renderPlaceholderTab('📰', 'News coming soon', 'Related news articles will appear here.');
-    case 'injuries':  return renderPlaceholderTab('🏥', 'Injury report coming soon', 'Official injury designations will appear here.');
+    case 'standings':
+    case 'lineups':
+    case 'news':
+    case 'injuries':  return renderLoadingSkeleton();
     default:          return renderSummaryTab(game);
   }
 }
@@ -769,9 +867,6 @@ async function _loadTab(el, game) {
 
   // Instant tabs
   if (tab === 'summary') { content.innerHTML = renderSummaryTab(game); return; }
-  if (tab === 'lineups') { content.innerHTML = renderPlaceholderTab('📋', 'Lineups coming soon', 'Starting rosters and depth charts will appear here.'); return; }
-  if (tab === 'news')    { content.innerHTML = renderPlaceholderTab('📰', 'News coming soon', 'Related news articles will appear here.'); return; }
-  if (tab === 'injuries'){ content.innerHTML = renderPlaceholderTab('🏥', 'Injury report coming soon', 'Official injury designations will appear here.'); return; }
 
   // Async tabs — show skeleton first
   content.innerHTML = renderLoadingSkeleton();
@@ -812,6 +907,18 @@ async function _loadTab(el, game) {
       const data = await fetchStandings(game);
       if (ver !== _loadVersion) return;
       html = renderStandingsTabHTML(game, data);
+    } else if (tab === 'lineups') {
+      const rosters = await fetchLineups(game);
+      if (ver !== _loadVersion) return;
+      html = renderLineupsTabHTML(game, rosters);
+    } else if (tab === 'news') {
+      const articles = await fetchNews(game);
+      if (ver !== _loadVersion) return;
+      html = renderNewsTabHTML(game, articles);
+    } else if (tab === 'injuries') {
+      const groups = await fetchInjuries(game);
+      if (ver !== _loadVersion) return;
+      html = renderInjuriesTabHTML(game, groups);
     }
 
     if (ver === _loadVersion) content.innerHTML = html;
