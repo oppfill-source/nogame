@@ -41,19 +41,25 @@ function offsetToDateStr(offset) {
   return d.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
 }
 
-function espnStatusToInternal(typeName = '') {
-  if (typeName.includes('FINAL') || typeName.includes('END')) return 'final';
-  if (typeName.includes('HALFTIME') || typeName.includes('INTERMISSION')) return 'halftime';
-  if (typeName.includes('PROGRESS')) return 'live';
+function espnStatusToInternal(type) {
+  // `type` is ESPN's status.type object. Use the sport-agnostic `state`
+  // (pre/in/post) as the primary signal so soccer (STATUS_FULL_TIME,
+  // STATUS_FIRST_HALF, …) classifies correctly — not just US-sport names.
+  const name  = type?.name ?? '';
+  const state = type?.state ?? '';
+  if (name.includes('HALFTIME') || name.includes('INTERMISSION')) return 'halftime';
+  if (state === 'post' || name.includes('FINAL') || name.includes('FULL_TIME') || name.includes('END')) return 'final';
+  if (state === 'in'   || name.includes('PROGRESS') || name.includes('HALF')) return 'live';
   return 'scheduled';
 }
 
 function buildPeriodLabel(sportId, statusType, period) {
   const name   = statusType?.name ?? '';
   const detail = statusType?.shortDetail ?? statusType?.detail ?? '';
-  if (name.includes('FINAL'))     return 'Final';
+  const state  = statusType?.state ?? '';
+  if (name.includes('FINAL') || name.includes('FULL_TIME') || state === 'post') return 'Final';
   if (name.includes('HALFTIME'))  return (sportId === 'nhl' || sportId === 'mlb') ? 'Intermission' : 'Halftime';
-  if (!name.includes('PROGRESS')) return null;
+  if (!name.includes('PROGRESS') && state !== 'in' && !name.includes('HALF')) return null;
   switch (sportId) {
     case 'nfl': case 'ncaaf': case 'nba': case 'ncaab':
       return period ? `Q${period}` : (detail || 'Live');
@@ -104,7 +110,7 @@ async function fetchLeague(leagueId, dateStr) {
     if (!home || !away) continue;
 
     const st     = ev.status ?? {};
-    const status = espnStatusToInternal(st.type?.name);
+    const status = espnStatusToInternal(st.type);
     const active = status === 'live' || status === 'halftime';
     const done   = status === 'final';
 
