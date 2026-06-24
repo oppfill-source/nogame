@@ -347,6 +347,88 @@ function renderPlayerPropsHTML(game, propGroups) {
 
 // ── Stats tab ─────────────────────────────────────────────────────────────────
 
+// Soccer box score = team match stats (possession, shots, cards…), a flat
+// `statistics` array per team — nothing like the basketball player tables.
+function renderSoccerStatsHTML(game, data) {
+  const teams = data?.boxscore?.teams ?? [];
+  if (teams.length < 2) return null;
+
+  // Match boxscore teams to our home/away by name so columns never swap.
+  const normName = s => (s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const findTeam = name => {
+    const w = normName(name);
+    if (!w) return null;
+    return teams.find(t => {
+      const n = normName(t.team?.displayName ?? t.team?.name ?? t.team?.abbreviation);
+      return n && (n === w || n.startsWith(w.slice(0, 4)) || w.startsWith(n.slice(0, 4)));
+    });
+  };
+  let away = findTeam(game.awayTeam?.name);
+  let home = findTeam(game.homeTeam?.name);
+  if (!away || !home || away === home) {
+    away = teams.find(t => t.homeAway === 'away') ?? teams[0];
+    home = teams.find(t => t.homeAway === 'home') ?? teams[1];
+  }
+
+  const val   = (t, name) => { const s = (t.statistics ?? []).find(x => x.name === name); return s ? s.displayValue : null; };
+  const toNum = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+
+  const ROWS = [
+    ['possessionPct',  'Possession',      '%'],
+    ['totalShots',     'Shots',           ''],
+    ['shotsOnTarget',  'Shots on Target', ''],
+    ['wonCorners',     'Corners',         ''],
+    ['foulsCommitted', 'Fouls',           ''],
+    ['offsides',       'Offsides',        ''],
+    ['yellowCards',    'Yellow Cards',    ''],
+    ['redCards',       'Red Cards',       ''],
+    ['saves',          'Saves',           ''],
+  ];
+
+  const rowsHTML = ROWS.map(([key, label, suffix]) => {
+    const aRaw = val(away, key), hRaw = val(home, key);
+    if (aRaw == null && hRaw == null) return '';
+    const a = aRaw ?? '0', h = hRaw ?? '0';
+    const an = toNum(a), hn = toNum(h), tot = an + hn;
+    const aPct = tot > 0 ? (an / tot) * 100 : 50;
+    return `
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:.86rem;margin-bottom:4px">
+          <span style="font-weight:800;color:var(--text)">${esc(a)}${suffix}</span>
+          <span style="color:var(--text-muted);font-size:.76rem">${esc(label)}</span>
+          <span style="font-weight:800;color:var(--text)">${esc(h)}${suffix}</span>
+        </div>
+        <div style="display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--border-sub)">
+          <div style="width:${aPct.toFixed(1)}%;background:#22c55e"></div>
+          <div style="width:${(100 - aPct).toFixed(1)}%;background:#3b82f6"></div>
+        </div>
+      </div>`;
+  }).filter(Boolean).join('');
+
+  const aAcc = val(away, 'accuratePasses'), aTot = val(away, 'totalPasses');
+  const hAcc = val(home, 'accuratePasses'), hTot = val(home, 'totalPasses');
+  const passRow = (aTot != null || hTot != null) ? `
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:.86rem;padding-top:10px;margin-top:2px;border-top:1px solid var(--border-sub)">
+        <span style="font-weight:700;color:var(--text)">${esc(aAcc ?? '—')}<span style="color:var(--text-muted);font-weight:400">/${esc(aTot ?? '—')}</span></span>
+        <span style="color:var(--text-muted);font-size:.76rem">Passes (acc / total)</span>
+        <span style="font-weight:700;color:var(--text)">${esc(hAcc ?? '—')}<span style="color:var(--text-muted);font-weight:400">/${esc(hTot ?? '—')}</span></span>
+      </div>` : '';
+
+  if (!rowsHTML && !passRow) return null;
+
+  const tLabel = (t, fb) => esc(t.team?.abbreviation ?? t.team?.displayName ?? fb ?? '');
+  return `
+    <div class="detail-stats" style="padding-top:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;font-weight:800;color:var(--text);margin-bottom:14px">
+        <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:#22c55e"></span>${tLabel(away, game.awayTeam?.name)}</span>
+        <span style="color:var(--text-muted);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Match Stats</span>
+        <span style="display:inline-flex;align-items:center;gap:6px">${tLabel(home, game.homeTeam?.name)}<span style="width:9px;height:9px;border-radius:2px;background:#3b82f6"></span></span>
+      </div>
+      ${rowsHTML}
+      ${passRow}
+    </div>`;
+}
+
 function renderStatsTabHTML(game, data) {
   const isActive = game.status === 'live' || game.status === 'halftime' || game.status === 'final';
 
@@ -354,13 +436,17 @@ function renderStatsTabHTML(game, data) {
     return `
       <div class="detail-tab-placeholder">
         <div class="detail-tab-placeholder__icon">📈</div>
-        <div class="detail-tab-placeholder__title">Box score available at game time</div>
-        <div class="detail-tab-placeholder__sub">Check back once the game starts.</div>
+        <div class="detail-tab-placeholder__title">Stats available at game time</div>
+        <div class="detail-tab-placeholder__sub">Live match stats appear once the game kicks off.</div>
       </div>`;
   }
 
   if (!data?.boxscore) {
     return renderErrorState('Box score data not yet available.');
+  }
+
+  if (game.sportId === 'soccer') {
+    return renderSoccerStatsHTML(game, data) ?? renderErrorState('Match stats not yet available for this game.');
   }
 
   const { players = [], teams = [] } = data.boxscore;
